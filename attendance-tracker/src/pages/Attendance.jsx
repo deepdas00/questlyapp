@@ -406,7 +406,7 @@ const Attendance = () => {
                         Quick Action
                       </span>
                       <span className="block text-[10px] md:text-sm font-black text-slate-700 uppercase tracking-tight">
-                        Mass Bunk
+                        Absent
                       </span>
                     </div>
                   </div>
