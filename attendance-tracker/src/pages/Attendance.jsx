@@ -35,6 +35,7 @@ const Attendance = () => {
   // const [classesPerDay] = useState(5);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [predictDays, setPredictDays] = useState(5);
+  const [loadingType, setLoadingType] = useState(null);
 
   const [semester, setSemester] = useState(null);
 
@@ -68,8 +69,7 @@ const Attendance = () => {
   const [subjects, setSubjects] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading] = useState(false);
 
   const fetchSubjects = async () => {
     try {
@@ -145,20 +145,17 @@ const [loading, setLoading] = useState(false);
   // Logic: Manual Subject Update
   const updateSubject = async (routineId, subjectId, type) => {
     if (isHoliday) {
-    alert("Holiday hai 😄 Reset karo pehle");
-    return;
-  }
-    
-    try {
+      alert("Holiday hai 😄 Reset karo pehle");
+      return;
+    }
 
-      
- setLoading(true);
-        const localDate = new Date(selectedDate);
-localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
+    try {
+      setLoadingType("subject");
+      const localDate = new Date(selectedDate);
+      localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
 
       await API.post("/attendance/mark-subject", {
-
-date: localDate.toISOString(),
+        date: localDate.toISOString(),
         routine_id: routineId,
         subject_id: subjectId,
         status: type === "present" ? "PRESENT" : "ABSENT",
@@ -168,10 +165,9 @@ date: localDate.toISOString(),
       await fetchSubjects();
     } catch (err) {
       console.error("ERROR:", err.response?.data || err.message);
+    } finally {
+      setLoadingType(null);
     }
-    finally {
-    setLoading(false);
-  }
   };
   // Logic: Global Whole Day Actions
   const handleGlobalAction = async (type) => {
@@ -188,9 +184,10 @@ date: localDate.toISOString(),
     else if (type === "reset") apiType = "RESET"; // ✅ FIX
 
     try {
-       setLoading(true);
-       const localDate = new Date(selectedDate);
-localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
+      setLoadingType("global");
+
+      const localDate = new Date(selectedDate);
+      localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
 
       await API.post("/attendance/mark-day", {
         date: localDate.toISOString(),
@@ -205,8 +202,8 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
     } catch (err) {
       console.error(err);
     } finally {
-    setLoading(false);
-  }
+      setLoadingType(null);
+    }
   };
 
   const getDayStatus = (day) => {
@@ -389,53 +386,6 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
         </div>
 
         <main className="flex-1 p-2 lg:p-10 overflow-y-auto">
-
-
-
-
-{loading && (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-    {/* 1. THE BLUR LAYER */}
-    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-700" />
-
-    {/* 2. THE HUB: Darker card to match your image reference */}
-    <div className="relative bg-white border border-zinc-800 rounded-3xl p-10 flex flex-col items-center gap-6 shadow-2xl animate-in zoom-in-95 duration-500">
-      
-      {/* 3. WAVEFORM VISUALIZER */}
-      <div className="flex items-end justify-center gap-1.5 h-12 w-20">
-        <span className="w-2 bg-indigo-500 rounded-full animate-waveform" style={{ animationDelay: '0.0s' }} />
-        <span className="w-2 bg-indigo-400 rounded-full animate-waveform" style={{ animationDelay: '0.1s' }} />
-        <span className="w-2 bg-indigo-300 rounded-full animate-waveform" style={{ animationDelay: '0.2s' }} />
-        <span className="w-2 bg-indigo-400 rounded-full animate-waveform" style={{ animationDelay: '0.3s' }} />
-        <span className="w-2 bg-indigo-500 rounded-full animate-waveform" style={{ animationDelay: '0.4s' }} />
-      </div>
-
-      {/* 4. TYPOGRAPHY */}
-      <div className="text-center space-y-1">
-        <h3 className="text-sm font-black text-zinc-900 tracking-[0.3em] uppercase italic">
-          Syning...
-        </h3>
-        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.1em]">
-          Please wait while we update your attendance data
-        </p>
-      </div>
-    </div>
-
-    {/* Custom Animation Engine */}
-    <style dangerouslySetInnerHTML={{ __html: `
-      @keyframes waveform {
-        0%, 100% { height: 20%; }
-        50% { height: 100%; }
-      }
-      .animate-waveform {
-        animation: waveform 0.8s ease-in-out infinite;
-      }
-    `}} />
-  </div>
-)}
-
-
-
           <div className="max-w-[1600px] mx-auto">
             {/* TOP NAV BAR */}
 
@@ -464,8 +414,9 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-3 md:gap-4 w-full lg:w-auto">
                 {/* MASS BUNK */}
                 <button
+                  disabled={loadingType !== null}
                   onClick={() => handleGlobalAction("absent")}
-                  className="group relative px-4 md:px-6 py-3 bg-white border border-red-100 rounded-2xl transition-all duration-200 shadow-[0_4px_0_0_rgba(254,226,226,1)] hover:shadow-[0_2px_0_0_rgba(254,226,226,1)] hover:translate-y-[2px] active:translate-y-[4px] w-full sm:w-auto"
+                  className={`not-first-of-type:roup relative px-4 md:px-6 py-3 bg-white border border-red-100 rounded-2xl transition-all duration-200 shadow-[0_4px_0_0_rgba(254,226,226,1)] hover:shadow-[0_2px_0_0_rgba(254,226,226,1)] hover:translate-y-[2px] active:translate-y-[4px] w-full sm:w-auto ${loadingType ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <div className="flex items-center gap-2 md:gap-3">
                     <div className="p-2 bg-red-50 rounded-xl group-hover:bg-red-500 group-hover:text-white transition-all duration-300">
@@ -484,8 +435,9 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
 
                 {/* MARK PRESENT */}
                 <button
+                  disabled={loadingType !== null}
                   onClick={() => handleGlobalAction("present")}
-                  className="group relative px-4 md:px-6 py-3 bg-blue-600 rounded-2xl transition-all duration-200 shadow-[0_4px_0_0_#1e3a8a] hover:shadow-[0_2px_0_0_#1e3a8a] hover:translate-y-[2px] active:translate-y-[4px] w-full sm:w-auto"
+                  className={`group relative px-4 md:px-6 py-3 bg-blue-600 rounded-2xl transition-all duration-200 shadow-[0_4px_0_0_#1e3a8a] hover:shadow-[0_2px_0_0_#1e3a8a] hover:translate-y-[2px] active:translate-y-[4px] w-full sm:w-auto ${loadingType ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <div className="flex items-center gap-2 md:gap-3">
                     <div className="p-2 bg-blue-500/30 rounded-xl">
@@ -504,8 +456,9 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
 
                 {/* HOLIDAY */}
                 <button
+                  disabled={loadingType !== null}
                   onClick={() => handleGlobalAction("holiday")}
-                  className="group px-4 md:px-6 py-3 bg-white border border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 md:gap-3 w-full sm:w-auto"
+                  className={`group px-4 md:px-6 py-3 bg-white border border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 md:gap-3 w-full sm:w-auto ${loadingType ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <div className="text-[17px] md:text-xl filter drop-shadow-sm group-hover:rotate-12 transition-transform">
                     🎉
@@ -522,8 +475,9 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
 
                 {/* RESET */}
                 <button
+                  disabled={loadingType !== null}
                   onClick={() => handleGlobalAction("reset")}
-                  className="group px-4 md:px-6 py-3 bg-white border border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-50 hover:shadow-md flex items-center gap-2 md:gap-3 w-full sm:w-auto"
+                  className={`group px-4 md:px-6 py-3 bg-white border border-slate-200 rounded-2xl transition-all duration-300 hover:bg-slate-50 hover:shadow-md flex items-center gap-2 md:gap-3 w-full sm:w-auto ${loadingType ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <RotateCcw
                     size={18}
@@ -694,7 +648,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                       return (
                         <button
                           key={i}
-                          onClick={() => setSelectedDate(dateObj)}
+                          onClick={() => !loadingType && setSelectedDate(dateObj)}
                           className={`
         aspect-square flex items-center justify-center rounded-2xl text-[12px] font-black transition-all border backdrop-blur-md
         ${
@@ -704,7 +658,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
         }
           ${status}
        
-      `}
+       ${loadingType ? "pointer-events-none opacity-60" : ""}`}
                         >
                           {day}
                         </button>
@@ -884,6 +838,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                               {/* Action Buttons */}
                               <div className="grid grid-cols-2 gap-2 md:gap-4">
                                 <button
+                                  disabled={loadingType !== null}
                                   onClick={() =>
                                     updateSubject(r._id, sub._id, "present")
                                   }
@@ -891,7 +846,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                                     currentStatus === "present"
                                       ? "bg-emerald-500 text-white"
                                       : "bg-white text-slate-700 border border-slate-200"
-                                  }`}
+                                  } ${loadingType ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                   <Check
                                     size={16}
@@ -902,6 +857,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                                 </button>
 
                                 <button
+                                  disabled={loadingType !== null}
                                   onClick={() =>
                                     updateSubject(r._id, sub._id, "absent")
                                   }
@@ -909,7 +865,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                                     currentStatus === "absent"
                                       ? "bg-red-500 text-white"
                                       : "bg-white text-slate-700 border border-slate-200"
-                                  }`}
+                                  } ${loadingType ? "opacity-50" : ""}`}
                                 >
                                   <X
                                     size={16}
@@ -1013,7 +969,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                         return (
                           <button
                             key={i}
-                            onClick={() => setSelectedDate(dateObj)}
+                            onClick={() => !loadingType && setSelectedDate(dateObj)}
                             className={`
         aspect-square flex items-center justify-center rounded-2xl text-[12px] font-black transition-all border backdrop-blur-md
         ${
@@ -1023,7 +979,7 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
         }
           ${status}
        
-      `}
+      ${loadingType ? "pointer-events-none opacity-60" : ""} `}
                           >
                             {day}
                           </button>
@@ -1336,121 +1292,142 @@ localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
                   </div>
                 </div>
 
-
-
-
-
-
-
-
-
-
-
-
                 <div className="lg:hidden bg-white border border-slate-100 rounded-[1.3rem] lg:rounded-[2.5rem] p-4 md:p-10 shadow-sm">
-  {/* Header */}
-  <h2 className="text-lg md:text-xl font-black text-[#1e293b] mb-4 md:mb-10 tracking-tight">
-    Subject Overview
-  </h2>
+                  {/* Header */}
+                  <h2 className="text-lg md:text-xl font-black text-[#1e293b] mb-4 md:mb-10 tracking-tight">
+                    Subject Overview
+                  </h2>
 
-  {/* Cards Grid */}
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
-    {subjects.map((sub, idx) => {
-      const attended = sub.attended_count || 0;
-      const conducted = sub.conducted_count || 0;
-      const percentage = conducted > 0 ? ((attended / conducted) * 100).toFixed(1) : "0.0";
-      const isLow = percentage < target;
+                  {/* Cards Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+                    {subjects.map((sub, idx) => {
+                      const attended = sub.attended_count || 0;
+                      const conducted = sub.conducted_count || 0;
+                      const percentage =
+                        conducted > 0
+                          ? ((attended / conducted) * 100).toFixed(1)
+                          : "0.0";
+                      const isLow = percentage < target;
 
-      const themes = [
-        { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700", bar: "bg-purple-500" },
-        { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", bar: "bg-blue-500" },
-        { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", bar: "bg-amber-500" },
-        { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", bar: "bg-emerald-500" },
-        { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", bar: "bg-rose-500" },
-      ];
-      const theme = themes[idx % themes.length];
-      const safe = Math.floor((100 * attended) / target - conducted);
-      const need = Math.ceil((target * conducted - 100 * attended) / (100 - target));
+                      const themes = [
+                        {
+                          bg: "bg-purple-50",
+                          border: "border-purple-200",
+                          text: "text-purple-700",
+                          bar: "bg-purple-500",
+                        },
+                        {
+                          bg: "bg-blue-50",
+                          border: "border-blue-200",
+                          text: "text-blue-700",
+                          bar: "bg-blue-500",
+                        },
+                        {
+                          bg: "bg-amber-50",
+                          border: "border-amber-200",
+                          text: "text-amber-700",
+                          bar: "bg-amber-500",
+                        },
+                        {
+                          bg: "bg-emerald-50",
+                          border: "border-emerald-200",
+                          text: "text-emerald-700",
+                          bar: "bg-emerald-500",
+                        },
+                        {
+                          bg: "bg-rose-50",
+                          border: "border-rose-200",
+                          text: "text-rose-700",
+                          bar: "bg-rose-500",
+                        },
+                      ];
+                      const theme = themes[idx % themes.length];
+                      const safe = Math.floor(
+                        (100 * attended) / target - conducted,
+                      );
+                      const need = Math.ceil(
+                        (target * conducted - 100 * attended) / (100 - target),
+                      );
 
-      return (
-        <div
-          key={sub._id}
-          className={`${theme.bg} border ${theme.border} rounded-[1.2rem] md:rounded-[2rem] p-3 md:p-8 relative overflow-hidden`}
-        >
-          {/* MOBILE: Single line flex-row with 3 sections
+                      return (
+                        <div
+                          key={sub._id}
+                          className={`${theme.bg} border ${theme.border} rounded-[1.2rem] md:rounded-[2rem] p-3 md:p-8 relative overflow-hidden`}
+                        >
+                          {/* MOBILE: Single line flex-row with 3 sections
               DESKTOP (lg): Original Stacked Layout
           */}
-          <div className="flex flex-row lg:flex-col justify-between items-center lg:items-stretch mb-2 lg:mb-6">
-            
-            {/* Section 1: Subject Identity (Left) */}
-            <div className="flex-1 min-w-0 pr-2">
-              <div className="flex items-baseline gap-1 lg:block">
-                <h3 className={`${theme.text} font-black text-[11px] md:text-sm uppercase tracking-wider truncate`}>
-                  {sub.name}
-                </h3>
-                <span className="text-slate-400 text-[8px] md:text-[10px] font-bold">
-                  {sub.code}
-                </span>
-              </div>
-              {/* Counts: Only visible on mobile here; on desktop it's in Section 2 */}
-              <p className="lg:hidden text-slate-400 text-[9px] font-bold">
-                {attended}/{conducted} classes
-              </p>
-            </div>
+                          <div className="flex flex-row lg:flex-col justify-between items-center lg:items-stretch mb-2 lg:mb-6">
+                            {/* Section 1: Subject Identity (Left) */}
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex items-baseline gap-1 lg:block">
+                                <h3
+                                  className={`${theme.text} font-black text-[11px] md:text-sm uppercase tracking-wider truncate`}
+                                >
+                                  {sub.name}
+                                </h3>
+                                <span className="text-slate-400 text-[8px] md:text-[10px] font-bold">
+                                  {sub.code}
+                                </span>
+                              </div>
+                              {/* Counts: Only visible on mobile here; on desktop it's in Section 2 */}
+                              <p className="lg:hidden text-slate-400 text-[9px] font-bold">
+                                {attended}/{conducted} classes
+                              </p>
+                            </div>
 
-            {/* Section 2: Attendance Stats (Center/Hidden on Desktop) */}
-            <div className="hidden lg:block">
-               <p className="text-slate-400 text-[11px] font-bold mt-1">
-                 {attended}/{conducted} classes
-               </p>
-            </div>
+                            {/* Section 2: Attendance Stats (Center/Hidden on Desktop) */}
+                            <div className="hidden lg:block">
+                              <p className="text-slate-400 text-[11px] font-bold mt-1">
+                                {attended}/{conducted} classes
+                              </p>
+                            </div>
 
-            {/* Section 3: Percentage & Status (Right) */}
-            <div className="flex flex-col items-end lg:flex-row lg:justify-between lg:items-end lg:mt-4 shrink-0">
-  {/* Percentage - Large and clear */}
-  <p className={`text-xl lg:text-4xl font-black ${theme.text} leading-none`}>
-    {percentage}%
-  </p>
-  
-  {/* Status Badges Container */}
-  <div className="mt-1 lg:mt-0 flex items-center gap-1.5 lg:block">
-    {/* Safe Status */}
-    {!isLow && safe > 0 && (
-      <span className="bg-white/60 text-emerald-600 text-[8px] lg:text-[10px] font-black px-2 lg:px-3 py-0.5 lg:py-1 rounded-full border border-emerald-200 whitespace-nowrap">
-        Bunk {safe} classes safely
-      </span>
-    )}
-    
-    {/* Low/Need Status Group */}
-   {/* Low/Need Status Group - Styled like the Safe Message */}
-{isLow && (
-  <div className="flex items-center gap-1.5 lg:flex-col lg:items-end lg:gap-1">
-    {need > 0 && (
-      <span className="bg-orange-50/80 text-orange-600 text-[8px] lg:text-[10px] font-black px-2 lg:px-3 py-0.5 lg:py-1 rounded-full border border-orange-200 whitespace-nowrap">
-        Need {need} classes to be safe
-      </span>
-    )}
-    
-   
+                            {/* Section 3: Percentage & Status (Right) */}
+                            <div className="flex flex-col items-end lg:flex-row lg:justify-between lg:items-end lg:mt-4 shrink-0">
+                              {/* Percentage - Large and clear */}
+                              <p
+                                className={`text-xl lg:text-4xl font-black ${theme.text} leading-none`}
+                              >
+                                {percentage}%
+                              </p>
 
-  </div>
-)}
-  </div>
-</div>
-          </div>
+                              {/* Status Badges Container */}
+                              <div className="mt-1 lg:mt-0 flex items-center gap-1.5 lg:block">
+                                {/* Safe Status */}
+                                {!isLow && safe > 0 && (
+                                  <span className="bg-white/60 text-emerald-600 text-[8px] lg:text-[10px] font-black px-2 lg:px-3 py-0.5 lg:py-1 rounded-full border border-emerald-200 whitespace-nowrap">
+                                    Bunk {safe} classes safely
+                                  </span>
+                                )}
 
-          {/* Progress Bar: Ultra slim on mobile */}
-          <div className="w-full bg-white h-1 lg:h-2 rounded-full overflow-hidden border-1 border-fuchsia-400/20">
-            <div
-              className={`${theme.bar} h-full rounded-full transition-all duration-500`}
-              style={{ width: `${Math.min(percentage, 100)}%` }}
-            />
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</div>
+                                {/* Low/Need Status Group */}
+                                {/* Low/Need Status Group - Styled like the Safe Message */}
+                                {isLow && (
+                                  <div className="flex items-center gap-1.5 lg:flex-col lg:items-end lg:gap-1">
+                                    {need > 0 && (
+                                      <span className="bg-orange-50/80 text-orange-600 text-[8px] lg:text-[10px] font-black px-2 lg:px-3 py-0.5 lg:py-1 rounded-full border border-orange-200 whitespace-nowrap">
+                                        Need {need} classes to be safe
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar: Ultra slim on mobile */}
+                          <div className="w-full bg-white h-1 lg:h-2 rounded-full overflow-hidden border-1 border-fuchsia-400/20">
+                            <div
+                              className={`${theme.bar} h-full rounded-full transition-all duration-500`}
+                              style={{ width: `${Math.min(percentage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
