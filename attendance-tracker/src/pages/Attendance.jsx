@@ -68,6 +68,8 @@ const Attendance = () => {
   const [subjects, setSubjects] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+const [loading, setLoading] = useState(false);
+
 
   const fetchSubjects = async () => {
     try {
@@ -142,7 +144,16 @@ const Attendance = () => {
 
   // Logic: Manual Subject Update
   const updateSubject = async (routineId, subjectId, type) => {
+    if (isHoliday) {
+    alert("Holiday hai 😄 Reset karo pehle");
+    return;
+  }
+    
     try {
+
+      
+ setLoading(true);
+
       await API.post("/attendance/mark-subject", {
         date: selectedDate.toISOString(),
         routine_id: routineId,
@@ -155,6 +166,9 @@ const Attendance = () => {
     } catch (err) {
       console.error("ERROR:", err.response?.data || err.message);
     }
+    finally {
+    setLoading(false);
+  }
   };
   // Logic: Global Whole Day Actions
   const handleGlobalAction = async (type) => {
@@ -171,6 +185,7 @@ const Attendance = () => {
     else if (type === "reset") apiType = "RESET"; // ✅ FIX
 
     try {
+       setLoading(true);
       await API.post("/attendance/mark-day", {
         date: selectedDate.toISOString(),
         type: apiType,
@@ -183,7 +198,9 @@ const Attendance = () => {
       // setSelectedDate(new Date(selectedDate.getTime() + 1));
     } catch (err) {
       console.error(err);
-    }
+    } finally {
+    setLoading(false);
+  }
   };
 
   const getDayStatus = (day) => {
@@ -366,6 +383,53 @@ const Attendance = () => {
         </div>
 
         <main className="flex-1 p-2 lg:p-10 overflow-y-auto">
+
+
+
+
+{loading && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+    {/* 1. THE BLUR LAYER */}
+    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-700" />
+
+    {/* 2. THE HUB: Darker card to match your image reference */}
+    <div className="relative bg-white border border-zinc-800 rounded-3xl p-10 flex flex-col items-center gap-6 shadow-2xl animate-in zoom-in-95 duration-500">
+      
+      {/* 3. WAVEFORM VISUALIZER */}
+      <div className="flex items-end justify-center gap-1.5 h-12 w-20">
+        <span className="w-2 bg-indigo-500 rounded-full animate-waveform" style={{ animationDelay: '0.0s' }} />
+        <span className="w-2 bg-indigo-400 rounded-full animate-waveform" style={{ animationDelay: '0.1s' }} />
+        <span className="w-2 bg-indigo-300 rounded-full animate-waveform" style={{ animationDelay: '0.2s' }} />
+        <span className="w-2 bg-indigo-400 rounded-full animate-waveform" style={{ animationDelay: '0.3s' }} />
+        <span className="w-2 bg-indigo-500 rounded-full animate-waveform" style={{ animationDelay: '0.4s' }} />
+      </div>
+
+      {/* 4. TYPOGRAPHY */}
+      <div className="text-center space-y-1">
+        <h3 className="text-sm font-black text-zinc-900 tracking-[0.3em] uppercase italic">
+          Syning...
+        </h3>
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.1em]">
+          Please wait while we update your attendance data
+        </p>
+      </div>
+    </div>
+
+    {/* Custom Animation Engine */}
+    <style dangerouslySetInnerHTML={{ __html: `
+      @keyframes waveform {
+        0%, 100% { height: 20%; }
+        50% { height: 100%; }
+      }
+      .animate-waveform {
+        animation: waveform 0.8s ease-in-out infinite;
+      }
+    `}} />
+  </div>
+)}
+
+
+
           <div className="max-w-[1600px] mx-auto">
             {/* TOP NAV BAR */}
 

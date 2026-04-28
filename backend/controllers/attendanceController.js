@@ -19,6 +19,8 @@ const getDayRange = (date) => {
 /* ===============================
    📌 MARK FULL DAY
 ================================ */
+// ✅ PRODUCTION SAFE VERSION
+
 export const markFullDay = async (req, res) => {
   try {
     const { date, type } = req.body;
@@ -34,7 +36,6 @@ export const markFullDay = async (req, res) => {
 
     const { start, end } = getDayRange(date);
 
-    // 🔍 Find existing attendance
     let attendance = await Attendance.findOne({
       user_id: req.user,
       date: { $gte: start, $lte: end },
@@ -42,58 +43,39 @@ export const markFullDay = async (req, res) => {
 
     const oldSlots = attendance?.slots || [];
 
-    
-
-    /* ===============================
-       🔄 RESET DAY (FULL CLEAR)
-    =============================== */
+    /* ============================
+       🧹 RESET
+    ============================ */
     if (type === "RESET") {
-      if (!attendance) {
-        return res.json({ message: "Already reset ✅" });
-      }
-
-      // Reverse counts
-      for (let slot of oldSlots) {
-        const subject = await Subject.findById(slot.subject_id);
-        if (!subject) continue;
-
-        subject.conducted_count -= 1;
-
-        if (slot.status === "PRESENT") {
-          subject.attended_count -= 1;
-        }
-
-        // Safety
-        if (subject.conducted_count < 0) subject.conducted_count = 0;
-        if (subject.attended_count < 0) subject.attended_count = 0;
-
-        await subject.save();
-      }
-
-      // Delete attendance (clean reset)
-      await Attendance.deleteOne({ _id: attendance._id });
-
-      return res.json({ message: "Day reset successfully ✅" });
-    }
-
-    /* ===============================
-       🎉 HOLIDAY (REVERSE + EMPTY)
-    =============================== */
-    if (type === "HOLIDAY") {
-      if (attendance && oldSlots.length > 0) {
+      if (attendance) {
         for (let slot of oldSlots) {
           const subject = await Subject.findById(slot.subject_id);
           if (!subject) continue;
 
           subject.conducted_count -= 1;
+          if (slot.status === "PRESENT") subject.attended_count -= 1;
 
-          if (slot.status === "PRESENT") {
-            subject.attended_count -= 1;
-          }
+          await subject.save();
+        }
 
-          // Safety
-          if (subject.conducted_count < 0) subject.conducted_count = 0;
-          if (subject.attended_count < 0) subject.attended_count = 0;
+        await Attendance.deleteOne({ _id: attendance._id });
+      }
+
+      return res.json({ message: "Reset done" });
+    }
+
+    /* ============================
+       🎉 HOLIDAY (NO COUNTS)
+    ============================ */
+    if (type === "HOLIDAY") {
+      // 🔥 FULL CLEAN (no reverse bug)
+      if (attendance) {
+        for (let slot of oldSlots) {
+          const subject = await Subject.findById(slot.subject_id);
+          if (!subject) continue;
+
+          subject.conducted_count -= 1;
+          if (slot.status === "PRESENT") subject.attended_count -= 1;
 
           await subject.save();
         }
@@ -111,15 +93,15 @@ export const markFullDay = async (req, res) => {
           day_type: "HOLIDAY",
           slots: [],
         },
-        { upsert: true, returnDocument: "after" }
+        { upsert: true, new: true }
       );
 
       return res.json(attendance);
     }
 
-    /* ===============================
-       📚 PRESENT / ABSENT
-    =============================== */
+    /* ============================
+       📚 NORMAL DAY
+    ============================ */
 
     const day = new Date(date)
       .toLocaleDateString("en-US", { weekday: "short" })
@@ -133,7 +115,7 @@ export const markFullDay = async (req, res) => {
     });
 
     if (routines.length === 0) {
-      return res.json({ message: "No classes today 🚫" });
+      return res.json({ message: "No classes today" });
     }
 
     const newStatus = type === "PRESENT" ? "PRESENT" : "ABSENT";
@@ -144,7 +126,6 @@ export const markFullDay = async (req, res) => {
       status: newStatus,
     }));
 
-    // 🔁 Update subject counts correctly
     for (let r of routines) {
       const subject = await Subject.findById(r.subject_id);
       if (!subject) continue;
@@ -153,32 +134,21 @@ export const markFullDay = async (req, res) => {
         (s) => s.routine_id.toString() === r._id.toString()
       );
 
+      // 🆕 NEW ENTRY
       if (!old) {
-        // New entry
         subject.conducted_count += 1;
-
-        if (newStatus === "PRESENT") {
-          subject.attended_count += 1;
-        }
-      } else if (old.status !== newStatus) {
-        // Status change
-        if (old.status === "PRESENT") {
-          subject.attended_count -= 1;
-        }
-
-        if (newStatus === "PRESENT") {
-          subject.attended_count += 1;
-        }
+        if (newStatus === "PRESENT") subject.attended_count += 1;
       }
 
-      // Safety
-      if (subject.conducted_count < 0) subject.conducted_count = 0;
-      if (subject.attended_count < 0) subject.attended_count = 0;
+      // 🔄 CHANGE
+      else if (old.status !== newStatus) {
+        if (old.status === "PRESENT") subject.attended_count -= 1;
+        if (newStatus === "PRESENT") subject.attended_count += 1;
+      }
 
       await subject.save();
     }
 
-    // 💾 Save attendance
     attendance = await Attendance.findOneAndUpdate(
       {
         user_id: req.user,
@@ -191,13 +161,12 @@ export const markFullDay = async (req, res) => {
         day_type: newStatus === "ABSENT" ? "MASS_BUNK" : "NORMAL",
         slots: newSlots,
       },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, new: true }
     );
 
     res.json(attendance);
 
   } catch (err) {
-    console.error("MARK FULL DAY ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -208,10 +177,6 @@ export const markFullDay = async (req, res) => {
 export const markSubjectAttendance = async (req, res) => {
   try {
     const { date, routine_id, subject_id, status } = req.body;
-
-    if (!routine_id || !subject_id || !status) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
 
     const semester = await Semester.findOne({
       user_id: req.user,
@@ -224,73 +189,80 @@ export const markSubjectAttendance = async (req, res) => {
 
     const { start, end } = getDayRange(date);
 
-    // 🔍 Find attendance for the day
     let attendance = await Attendance.findOne({
       user_id: req.user,
       date: { $gte: start, $lte: end },
     });
 
-    // 🆕 Create if not exists
+    // ❌ BLOCK IF HOLIDAY
+    if (attendance?.day_type === "HOLIDAY") {
+      return res.status(400).json({
+        message: "Holiday hai — reset first",
+      });
+    }
+
+    // 🆕 CREATE IF NOT EXISTS
     if (!attendance) {
       attendance = await Attendance.create({
         user_id: req.user,
         semester_id: semester._id,
         date,
+        day_type: "NORMAL",
         slots: [],
       });
     }
 
-    if (!attendance.slots) {
-      attendance.slots = [];
-    }
-
-    // 🔍 Find existing slot
-    const existing = attendance.slots.find(
-      (s) => s.routine_id?.toString() === routine_id?.toString()
-    );
-
     const subject = await Subject.findById(subject_id);
-
     if (!subject) {
       return res.status(404).json({ message: "Subject not found" });
     }
 
+    const existing = attendance.slots.find(
+      (s) => s.routine_id.toString() === routine_id.toString()
+    );
+
+    // 🔄 UPDATE EXISTING
     if (existing) {
-      // ⚡ CASE: UPDATE EXISTING SLOT
-
-      // If same status → do nothing
       if (existing.status === status) {
-        return res.json(attendance);
+        return res.json(attendance); // no change
       }
 
-      // Adjust attended count
-      if (existing.status === "PRESENT") {
-        subject.attended_count -= 1;
-      }
+      // remove old
+      if (existing.status === "PRESENT") subject.attended_count -= 1;
 
-      if (status === "PRESENT") {
-        subject.attended_count += 1;
-      }
+      // add new
+      if (status === "PRESENT") subject.attended_count += 1;
 
-      // Update status
       existing.status = status;
+    }
 
-    } else {
-      // 🆕 CASE: NEW SLOT
-
+    // 🆕 NEW SLOT
+    else {
       attendance.slots.push({
         routine_id,
         subject_id,
         status,
       });
 
-      // Increment conducted
       subject.conducted_count += 1;
 
-      // Increment attended if present
       if (status === "PRESENT") {
         subject.attended_count += 1;
       }
+    }
+
+    // 🔥 RECALCULATE DAY TYPE (VERY IMPORTANT)
+    const total = attendance.slots.length;
+    const present = attendance.slots.filter(
+      (s) => s.status === "PRESENT"
+    ).length;
+
+    if (total === 0) {
+      attendance.day_type = "NORMAL";
+    } else if (present === 0) {
+      attendance.day_type = "MASS_BUNK";
+    } else {
+      attendance.day_type = "NORMAL"; // mixed handled in UI
     }
 
     await attendance.save();
@@ -299,11 +271,10 @@ export const markSubjectAttendance = async (req, res) => {
     res.json(attendance);
 
   } catch (err) {
-    console.error("MARK SUBJECT ERROR:", err);
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
-
 /* ===============================
    📌 GET ATTENDANCE
 ================================ */
