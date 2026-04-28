@@ -7,10 +7,12 @@ import Subject from "../models/Subject.js";
    🔧 HELPER: DATE RANGE
 ================================ */
 const getDayRange = (date) => {
-  const start = new Date(date);
+  const d = new Date(date);
+
+  const start = new Date(d);
   start.setHours(0, 0, 0, 0);
 
-  const end = new Date(date);
+  const end = new Date(d);
   end.setHours(23, 59, 59, 999);
 
   return { start, end };

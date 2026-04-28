@@ -153,9 +153,12 @@ const [loading, setLoading] = useState(false);
 
       
  setLoading(true);
+        const localDate = new Date(selectedDate);
+localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
 
       await API.post("/attendance/mark-subject", {
-        date: selectedDate.toISOString(),
+
+date: localDate.toISOString(),
         routine_id: routineId,
         subject_id: subjectId,
         status: type === "present" ? "PRESENT" : "ABSENT",
@@ -186,8 +189,11 @@ const [loading, setLoading] = useState(false);
 
     try {
        setLoading(true);
+       const localDate = new Date(selectedDate);
+localDate.setHours(12, 0, 0, 0); // 🔥 force mid-day (avoid timezone shift)
+
       await API.post("/attendance/mark-day", {
-        date: selectedDate.toISOString(),
+        date: localDate.toISOString(),
         type: apiType,
       });
 
