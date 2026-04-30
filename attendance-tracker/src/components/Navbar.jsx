@@ -98,6 +98,10 @@ const handleLogout = async () => {
 
 
 
+const isLandingPage = location.pathname === "/";
+
+
+
   return (
     <>
       {/* 🔝 NAVBAR */}

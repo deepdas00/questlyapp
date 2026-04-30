@@ -11,6 +11,7 @@ import attendanceRoutes from "./routes/attendanceRoutes.js";
 import routineRoutes from "./routes/routineRoutes.js";
 import semesterRoutes from "./routes/semesterRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 
 
 
@@ -55,6 +56,7 @@ app.use("/api/routine", routineRoutes);
 app.use("/api/semester", semesterRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/subject", subjectRoutes);
+app.use("/api/task", taskRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

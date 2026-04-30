@@ -5,11 +5,11 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Attendance from "./pages/Attendance";
 import AcademicVault from "./pages/AcademicVault";
-import LiveSchedule from "./pages/LiveShedule";
 import ProjectCamp from "./pages/ProjectCamp";
 import SmartSettings from "./pages/SmartSettings";
 import SmartCompass from "./pages/SmartCompass";
 import PrivateRoute from "./components/PrivateRoute";
+import TaskifyDashboard from "./pages/TaskifyDashboard";
 
 function App() {
   return (
@@ -50,7 +50,7 @@ function App() {
           path="/live-schedule"
           element={
             <PrivateRoute>
-              <LiveSchedule />
+              <TaskifyDashboard />
             </PrivateRoute>
           }
         />
