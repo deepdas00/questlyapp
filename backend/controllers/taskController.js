@@ -89,9 +89,14 @@ export const toggleTask = async (req, res) => {
     }
 
     if (task.type === "ASSIGNMENT") {
-      task.progress = 100;
-      task.status = "COMPLETED";
-    }
+  if (task.status === "COMPLETED") {
+    task.status = "IN_PROGRESS";
+    task.progress = 0;
+  } else {
+    task.status = "COMPLETED";
+    task.progress = 100;
+  }
+}
 
     await task.save();
 
