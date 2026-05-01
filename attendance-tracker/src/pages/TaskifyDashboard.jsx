@@ -857,12 +857,20 @@ ${
                                       </span>
                                     ))}
 
+                                    
+
                                   {!isExpanded && task.tags?.length > 3 && (
                                     <span className="text-[10px] text-slate-400 font-bold">
                                       +{task.tags.length - 3}
                                     </span>
                                   )}
                                 </div>
+
+                                {needsToggle && !isExpanded && (
+  <span className="text-[10px] text-indigo-500 font-bold">
+    + More
+  </span>
+)}
 
                                 {/* Optional dynamic timestamp or priority badge could go here */}
                               </div>
