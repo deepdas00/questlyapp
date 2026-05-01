@@ -252,6 +252,183 @@ const StudentDashboard = () => {
 
   const displayList = [...paginatedActive, ...recentCompleted];
 
+
+
+
+
+const totalAssignments = assignments.length;
+
+const completedAssignments = assignments.filter(
+  t => t.status === "COMPLETED"
+).length;
+
+const pendingAssignments = totalAssignments - completedAssignments;
+
+const overdueAssignments = assignments.filter(
+  t => t.due_date && new Date(t.due_date) < new Date() && t.status !== "COMPLETED"
+).length;
+
+const academicCompletion = totalAssignments
+  ? Math.round((completedAssignments / totalAssignments) * 100)
+  : 0;
+
+const today = new Date().toDateString();
+
+const todayTasks = dailyTasks.filter(
+  (t) => new Date(t.createdAt).toDateString() === today
+);
+
+const completedToday = todayTasks.filter(
+  (t) => t.status === "DONE"
+).length;
+
+
+
+const totalDaily = todayTasks.length;
+
+const productivityRate = totalDaily
+  ? Math.round((completedToday / totalDaily) * 100)
+  : 0;
+
+const completedDaily = dailyTasks.filter(
+  t => t.status === "DONE"
+).length;
+
+
+
+
+
+
+  const calculateStreak = () => {
+    const doneDates = dailyTasks
+      .filter((t) => t.status === "DONE")
+      .map((t) => new Date(t.createdAt).toDateString());
+
+    const unique = [...new Set(doneDates)].sort(
+      (a, b) => new Date(b) - new Date(a),
+    );
+
+    let streak = 0;
+    let current = new Date();
+
+    for (let i = 0; i < unique.length; i++) {
+      if (new Date(unique[i]).toDateString() === current.toDateString()) {
+        streak++;
+        current.setDate(current.getDate() - 1);
+      } else break;
+    }
+
+    return streak;
+  };
+
+  const streak = calculateStreak();
+
+const getWeeklyStats = () => {
+  const days = Array(7).fill(0);
+
+  dailyTasks.forEach(task => {
+    if (task.status === "DONE") {
+      const d = new Date(task.createdAt).getDay();
+      days[d]++;
+    }
+  });
+
+  const max = Math.max(...days, 1);
+
+return days.map(v => (v / max) * 100);
+};
+
+  const weeklyData = getWeeklyStats();
+
+
+
+const getInsight = () => {
+  if (overdueAssignments > 0) {
+    return `⚠️ ${overdueAssignments} overdue quests. Clear them immediately.`;
+  }
+
+  if (pendingAssignments > 5) {
+    return "📚 Too many pending quests. Focus on deadlines first.";
+  }
+
+  if (academicCompletion > 80) {
+    return "🔥 Excellent academic progress. You're on track.";
+  }
+
+  if (productivityRate < 40) {
+    return "⚡ Low daily productivity. Improve your hustle consistency.";
+  }
+
+  if (streak >= 5) {
+    return "💪 Strong habit streak. Keep your momentum.";
+  }
+
+  return "📈 Balanced progress. Stay consistent.";
+};
+
+
+
+
+const avgProgress =
+  assignments.length > 0
+    ? Math.round(
+        assignments.reduce((sum, t) => sum + (t.progress || 0), 0) /
+          assignments.length
+      )
+    : 0;
+
+
+
+
+
+
+
+    const getOverallTimeline = () => {
+  const map = {};
+
+  // 🔥 Combine BOTH (daily + assignments)
+  const allTasks = [...dailyTasks, ...assignments];
+
+  allTasks.forEach((task) => {
+    const date = new Date(task.createdAt).toLocaleDateString();
+
+    if (!map[date]) {
+      map[date] = { total: 0, done: 0 };
+    }
+
+    map[date].total++;
+
+    if (
+      task.status === "DONE" ||
+      task.status === "COMPLETED"
+    ) {
+      map[date].done++;
+    }
+  });
+
+  // Convert to sorted array
+  const sorted = Object.keys(map)
+    .sort((a, b) => new Date(a) - new Date(b))
+    .map((date) => {
+      const { total, done } = map[date];
+      return total ? Math.round((done / total) * 100) : 0;
+    });
+
+  return sorted.slice(-30); // last 30 days
+};
+
+const overallData = getOverallTimeline();
+
+
+
+    const trend =
+  overallData[overallData.length - 1] >
+  overallData[0]
+    ? "improving 📈"
+    : "needs focus 📉";
+
+
+
   return (
     <div>
       <Navbar />
@@ -302,24 +479,49 @@ const StudentDashboard = () => {
                 </div>
 
                 {/* Right Side: Stats Grid */}
-                <div className="grid grid-cols-2 sm:flex gap-3 md:gap-6 w-full lg:w-auto">
-                  <StatCard
-                    icon={
-                      <Flame className="w-5 h-5 lg:w-6 lg:h-6 text-orange-500" />
-                    }
-                    val="12"
-                    label="Day Streak"
-                    className="flex-1 lg:min-w-[140px] bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-orange-200 transition-colors"
-                  />
-                  <StatCard
-                    icon={
-                      <CheckCircle2 className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-500" />
-                    }
-                    val="84%"
-                    label="Avg. Score"
-                    className="flex-1 lg:min-w-[140px] bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-200 transition-colors"
-                  />
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+
+  {/* 🎓 Academic */}
+  <StatCard
+    icon={<CheckCircle2 className="text-emerald-500" />}
+    val={`${academicCompletion}%`}
+    label="Assignments Completed"
+  />
+
+  <StatCard
+    icon={<Target className="text-blue-500" />}
+    val={pendingAssignments}
+    label="Assignments Pending"
+  />
+
+  <StatCard
+    icon={<Clock className="text-red-500" />}
+    val={overdueAssignments}
+    label="Assignments Overdue"
+  />
+
+  {/* ⚡ Daily */}
+  <StatCard
+    icon={<Flame className="text-orange-500" />}
+    val={streak}
+     label="Daily Streak (Days)"
+  />
+
+  <StatCard
+    icon={<CheckCircle2 className="text-indigo-500" />}
+    val={completedToday}
+    label="Tasks Done Today"
+  />
+
+  <StatCard
+    icon={<TrendingUp className="text-purple-500" />}
+    val={`${productivityRate}%`}
+    label="Today's Productivity"
+  />
+
+</div>
+
+
               </div>
             </section>
 
@@ -857,8 +1059,6 @@ ${
                                       </span>
                                     ))}
 
-                                    
-
                                   {!isExpanded && task.tags?.length > 3 && (
                                     <span className="text-[10px] text-slate-400 font-bold">
                                       +{task.tags.length - 3}
@@ -867,10 +1067,10 @@ ${
                                 </div>
 
                                 {needsToggle && !isExpanded && (
-  <span className="text-[10px] text-indigo-500 font-bold">
-    + More
-  </span>
-)}
+                                  <span className="text-[10px] text-indigo-500 font-bold">
+                                    + More
+                                  </span>
+                                )}
 
                                 {/* Optional dynamic timestamp or priority badge could go here */}
                               </div>
@@ -918,12 +1118,13 @@ ${
               <div className="col-span-12 lg:col-span-4 space-y-8">
                 <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 relative overflow-hidden">
                   <div className="relative z-10">
-                    <h3 className="text-lg font-black mb-1">Study Insight</h3>
-                    <p className="text-xs text-slate-400 font-bold mb-8 uppercase tracking-widest">
-                      Focus Hours
-                    </p>
+                    <h3 className="text-lg font-black mb-1">Weekly Productivity</h3>
+<p className="text-xs text-slate-400 font-bold mb-8 uppercase">
+  Tasks Completed Per Day
+</p>
+
                     <div className="flex items-end justify-between h-32 gap-2 mb-6">
-                      {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                      {weeklyData.map((h, i) => (
                         <div
                           key={i}
                           className="flex-1 bg-blue-50 rounded-t-lg hover:bg-[#7165E3] transition-colors"
@@ -932,7 +1133,20 @@ ${
                       ))}
                     </div>
                   </div>
+                
+                
+                
                 </div>
+
+
+
+<p className="text-xs text-slate-400">
+  Daily Completion: {completedDaily}/{totalDaily} • Productivity: {productivityRate}%
+</p>
+
+<p className="text-xs text-slate-400 mt-1">
+  Academic: {completedAssignments}/{totalAssignments} completed
+</p>
 
                 <div className="bg-gradient-to-br from-[#7165E3] to-[#8B5CF6] p-8 rounded-[3rem] text-white shadow-xl shadow-blue-100">
                   <div className="flex justify-between items-start mb-6">
@@ -943,20 +1157,48 @@ ${
                       <p className="text-[10px] font-black opacity-60 uppercase tracking-widest italic">
                         Academic Streak
                       </p>
-                      <p className="text-2xl font-black">14 Days</p>
+                     <p className="text-2xl font-black">{streak} Days</p>
                     </div>
                   </div>
                   <h4 className="text-sm font-bold mb-2 uppercase">
                     Ready for Exams?
                   </h4>
                   <p className="text-xs opacity-70 mb-6">
-                    You've completed 80% of your current academic quests.
+                    {getInsight()}
                   </p>
                   <button className="w-full py-4 bg-white text-[#7165E3] rounded-2xl font-black text-[11px] uppercase tracking-widest">
                     View Rankings
                   </button>
                 </div>
+
+
+
+                <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+  
+  <h3 className="text-lg font-black mb-1">Overall Progress</h3>
+  <p className="text-xs text-slate-400 font-bold mb-6 uppercase">
+    From Start to Now
+  </p>
+
+  <div className="flex items-end h-32 gap-1">
+    {overallData.map((h, i) => (
+      <div
+        key={i}
+        className="flex-1 bg-blue-100 rounded-t-md hover:bg-blue-500 transition-all"
+        style={{ height: `${h}%` }}
+      />
+    ))}
+  </div>
+
+ <p className="text-xs text-slate-400 mt-2">
+  Your performance is {trend}
+</p>
+
+</div>
               </div>
+
+
+              
             </div>
           </div>
 
@@ -1081,11 +1323,11 @@ const NavItem = ({ icon, label, active = false }) => (
 );
 
 const StatCard = ({ icon, val, label }) => (
-  <div className="bg-white px-5 py-3 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm">
+  <div className="bg-white px-1 py-2 lg:px-5 lg:py-3 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm">
     <div className="p-2 bg-slate-50 rounded-xl">{icon}</div>
     <div>
       <p className="text-lg font-black text-slate-900 leading-none">{val}</p>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">
+      <p className="text-[7px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">
         {label}
       </p>
     </div>
