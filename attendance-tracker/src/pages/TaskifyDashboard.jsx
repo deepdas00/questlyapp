@@ -8,6 +8,7 @@ import {
   GraduationCap,
   ChevronDown,
   Flame,
+  PlusCircle,
   Target,
   Trash2,
   TrendingUp,
@@ -27,7 +28,10 @@ import { AuthContext } from "../context/AuthContext";
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
-const [loadingId, setLoadingId] = useState(null);
+  const [hustleView, setHustleView] = useState("TODAY");
+  const [dailyVisible, setDailyVisible] = useState(5);
+
+  const [loadingId, setLoadingId] = useState(null);
   const getGreeting = () => {
     const hour = new Date().getHours();
 
@@ -50,10 +54,12 @@ const [loadingId, setLoadingId] = useState(null);
 
   const [showAllCompleted, setShowAllCompleted] = useState(false);
 
-
   const [visibleCount, setVisibleCount] = useState(3);
 
+  const activeTasks = assignments.filter((t) => t.status !== "COMPLETED");
+  const [completedCount, setCompletedCount] = useState(2);
 
+  const paginatedActive = activeTasks.slice(0, visibleCount);
 
   const toggleReadMore = (id) => {
     setExpandedTasks((prev) => ({
@@ -64,7 +70,7 @@ const [loadingId, setLoadingId] = useState(null);
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [hustleView]);
 
   const fetchTasks = async () => {
     try {
@@ -73,25 +79,58 @@ const [loadingId, setLoadingId] = useState(null);
       const all = res.data;
 
       // Split by type
-      setDailyTasks(all.filter((t) => t.type === "DAILY"));
+      const dailyList = all.filter((t) => t.type === "DAILY");
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+
+      const filteredDaily = dailyList.filter((task) => {
+        const taskDate = new Date(task.createdAt);
+        taskDate.setHours(0, 0, 0, 0);
+
+        if (hustleView === "TODAY") {
+          return taskDate.getTime() === today.getTime();
+        }
+
+        if (hustleView === "YESTERDAY") {
+          return taskDate.getTime() === yesterday.getTime();
+        }
+
+        if (hustleView === "WEEK") {
+          return taskDate >= weekAgo;
+        }
+
+        return true;
+      });
+
+      setDailyTasks(filteredDaily);
 
       console.log(all);
 
       const assignmentList = all
-  .filter((t) => t.type === "ASSIGNMENT")
-  .sort((a, b) => {
-    const order = {
-      TODO: 1,
-      IN_PROGRESS: 2,
-      COMPLETED: 3,
-    };
+        .filter((t) => t.type === "ASSIGNMENT")
+        .sort((a, b) => {
+          const aDate = a.due_date ? new Date(a.due_date) : null;
+          const bDate = b.due_date ? new Date(b.due_date) : null;
 
-    return order[a.status] - order[b.status];
-  });
+          // ✅ If both have due dates → sort ascending (earliest first)
+          if (aDate && bDate) return aDate - bDate;
 
-setAssignments(assignmentList);
+          // ✅ If only one has date → that one comes first
+          if (aDate) return -1;
+          if (bDate) return 1;
 
+          // ✅ If none have date → fallback to latest created
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
 
+      setAssignments(assignmentList);
     } catch (err) {
       console.error(err);
     }
@@ -106,27 +145,33 @@ setAssignments(assignmentList);
 
     let finalTags = [...tempTags];
 
+    // 🔥 FIX: include last typed tag
     if (dailyForm.tags.trim()) {
       const extra = dailyForm.tags
-        .split(/[\s,]+/)
+        .split(/[\s,\.]+/)
         .map((t) => t.trim())
         .filter(Boolean);
 
       finalTags = [...new Set([...finalTags, ...extra])];
     }
 
-    await API.post("/task", {
-      title: dailyForm.title,
-      type: "DAILY",
-      tags: finalTags,
-      note: dailyForm.note,
-    });
+    try {
+      await API.post("/task", {
+        title: dailyForm.title,
+        type: "DAILY",
+        tags: finalTags,
+        note: dailyForm.note,
+      });
 
-    setDailyForm({ title: "", tags: "", note: "" });
-    setTempTags([]);
-    setIsFormOpen(false);
+      // RESET
+      setDailyForm({ title: "", tags: "", note: "" });
+      setTempTags([]);
+      setIsFormOpen(false);
 
-    fetchTasks();
+      fetchTasks();
+    } catch (err) {
+      console.error("ADD DAILY ERROR:", err);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -136,14 +181,12 @@ setAssignments(assignmentList);
       const value = dailyForm.tags.trim();
       if (!value) return;
 
-      // 🔥 Split by space, comma, dot
       const parts = value
         .split(/[\s,\.]+/)
         .map((t) => t.trim())
         .filter(Boolean);
 
       setTempTags((prev) => [...new Set([...prev, ...parts])]);
-
       setDailyForm((prev) => ({ ...prev, tags: "" }));
     }
   };
@@ -167,56 +210,47 @@ setAssignments(assignmentList);
     fetchTasks();
   };
 
-
-
-
-
-
-
-
   const addAssignment = async () => {
-  if (!newQuest.title) return;
+    if (!newQuest.title) return;
 
-  try {
-    await API.post("/task", {
-      title: newQuest.title,
-      type: "ASSIGNMENT",
-      due_date: newQuest.deadline,
-      note: newQuest.note,
-      progress: 0,
-      color: "bg-[#7165E3]",
-    });
+    try {
+      await API.post("/task", {
+        title: newQuest.title,
+        type: "ASSIGNMENT",
+        due_date: newQuest.deadline,
+        note: newQuest.note,
+        progress: 0,
+        color: "bg-[#7165E3]",
+      });
 
-    setShowQuestModal(false);
-    setNewQuest({ title: "", deadline: "" });
+      setShowQuestModal(false);
+      setNewQuest({ title: "", deadline: "" });
 
-    fetchTasks(); // 🔥 IMPORTANT
-  } catch (err) {
-    console.error(err);
-  }
-};
+      fetchTasks(); // 🔥 IMPORTANT
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
+  const handleComplete = async (id) => {
+    try {
+      setLoadingId(id); // 🔥 start loading
 
-const handleComplete = async (id) => {
-  try {
-    setLoadingId(id); // 🔥 start loading
+      await API.put(`/task/toggle/${id}`);
 
-    await API.put(`/task/toggle/${id}`);
+      await fetchTasks();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingId(null); // 🔥 stop loading
+    }
+  };
 
-    await fetchTasks();
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoadingId(null); // 🔥 stop loading
-  }
-};
+  const completedTasks = assignments.filter((t) => t.status === "COMPLETED");
 
+  const recentCompleted = completedTasks;
 
-const visibleAssignments = assignments.filter((item) => {
-  if (item.status !== "COMPLETED") return true;
-
-  return showAllCompleted;
-});
+  const displayList = [...paginatedActive, ...recentCompleted];
 
   return (
     <div>
@@ -236,7 +270,7 @@ const visibleAssignments = assignments.filter((item) => {
             {/* WELCOME & QUICK STATS */}
             <section className="relative overflow-hidden rounded-3xl  ">
               {/* Decorative Background Element */}
-              <div className="absolute -top-10 -right-10 h-40 w-40 bg-indigo-500/5 blur-[80px] rounded-full" />
+              <div className="absolute -top-10 -right-10 h-40 w-40 bg-blue-500/5 blur-[80px] rounded-full" />
 
               <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                 {/* Left Side: Typography */}
@@ -292,184 +326,318 @@ const visibleAssignments = assignments.filter((item) => {
             {/* DUAL SECTION */}
             <div className="grid grid-cols-12 gap-8">
               {/* LEFT: ACADEMIC QUESTS */}
-              <div className="col-span-12 lg:col-span-8 space-y-6">
+              <div className="col-span-12 lg:col-span-8 space-y-3 lg:space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-black text-slate-900">
                     Academic Quests
                   </h3>
                   <button
                     onClick={() => setShowQuestModal(true)}
-                    className="bg-[#7165E3] text-white p-2 rounded-xl shadow-lg hover:scale-105 transition-all"
+                    className="hidden lg:block bg-blue-600 text-white p-2 rounded-xl shadow-lg hover:scale-105 transition-all"
                   >
                     <Plus size={20} />
                   </button>
+                  <button
+                    onClick={() => setShowQuestModal(true)}
+                    className="lg:hidden bg-blue-600 text-white p-2 rounded-xl shadow-lg hover:scale-105 transition-all"
+                  >
+                    <Plus size={15} />
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {visibleAssignments.slice(0, visibleCount).map((item) => {
+                <p className="text-xs text-slate-400 font-bold">
+                  Showing {paginatedActive.length} of {activeTasks.length}{" "}
+                  active quests
+                </p>
+
+                <div className="w-full grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-2">
+                  {paginatedActive.map((item) => {
                     const isDone = item.status === "COMPLETED";
 
-
                     const isLoading = loadingId === item._id;
+
+                    const isOverdue =
+                      !isDone &&
+                      item.due_date &&
+                      new Date(item.due_date) < new Date();
 
                     return (
                       <div
                         key={item._id}
-                        className={`bg-white p-6 rounded-[2.5rem] border transition-all ${isLoading ? "opacity-50 pointer-events-none" : ""} ${
-                          isDone
-                            ? "opacity-60 border-emerald-200"
-                            : "border-slate-100 shadow-sm"
-                        }`}
+                        className={`w-full p-4 sm:p-6 rounded-3xl border transition-all duration-300
+${isLoading ? "opacity-50 pointer-events-none" : ""}
+
+${
+  isDone
+    ? "opacity-70 border-emerald-200 bg-emerald-50/40"
+    : isOverdue
+      ? "border-red-500 bg-red-300/40"
+      : "bg-white border-slate-100 shadow-sm hover:shadow-md"
+}`}
                       >
-                        <div className="flex justify-between mb-4">
+                        {/* 🔥 HEADER */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          {/* LEFT ICON */}
                           <div
-                            className={`p-2 rounded-lg ${
+                            className={`p-2 rounded-xl shrink-0 ${
                               isDone ? "bg-emerald-500" : item.color
                             } text-white`}
                           >
                             <BookOpen size={16} />
                           </div>
 
-                          <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-black text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                          {/* RIGHT STATUS */}
+                          <div className="flex flex-col items-end text-right">
+                            <span
+                              className={`text-[10px] font-black flex items-center gap-1 uppercase tracking-widest
+${
+  isDone
+    ? "text-emerald-500"
+    : isOverdue
+      ? "text-red-500"
+      : item.due_date
+        ? "text-slate-400"
+        : "text-amber-500"
+}`}
+                            >
+                              {isOverdue && (
+                                <span className="text-red-500 font-bold px-1 border border-red-500 rounded-2xl">
+                                  Overdue
+                                </span>
+                              )}
+
                               <Clock size={12} />
                               {isDone
-                                ? "COMPLETED"
-                                : `Due ${new Date(item.due_date).toLocaleDateString()}`}
+                                ? "Completed"
+                                : item.due_date
+                                  ? new Date(item.due_date).toLocaleDateString()
+                                  : "No Deadline"}
                             </span>
+                            <div className="flex items-center gap-2">
+                              {/* COMPLETE */}
+                              <button
+                                onClick={() => handleComplete(item._id)}
+                                disabled={isLoading}
+                                className={`text-[10px] font-bold px-3 py-1 rounded-full transition-all
+      ${
+        isDone
+          ? "bg-emerald-100 text-emerald-600"
+          : isOverdue
+            ? "bg-red-100 text-red-600"
+            : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+      }`}
+                              >
+                                {isLoading
+                                  ? "..."
+                                  : isDone
+                                    ? "Undo"
+                                    : "Complete"}
+                              </button>
 
-                        <button
-  onClick={() => handleComplete(item._id)}
-  disabled={isLoading}
-  className={`mt-2 text-[10px] font-black px-2 py-1 rounded transition-all
-  ${
-    isDone
-      ? "bg-emerald-100 text-emerald-600"
-      : "bg-indigo-50 text-[#7165E3]"
-  }`}
->
-  {isLoading ? "Updating..." : isDone ? "UNDO" : "COMPLETE"}
-</button>
+                              {/* 🔥 DELETE BUTTON */}
+                              <button
+                                onClick={() => deleteTask(item._id)}
+                                className="p-2 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-all"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
 
-                        
-
+                        {/* 🔥 TITLE */}
                         <h4
-                          className={`font-bold text-slate-800 text-lg mb-6 ${
-                            isDone ? "line-through" : ""
+                          className={`font-bold text-base sm:text-lg leading-snug ${
+                            isDone
+                              ? "line-through text-slate-400"
+                              : "text-slate-800"
                           }`}
                         >
                           {item.title}
                         </h4>
 
+                        {/* 🔥 DESCRIPTION */}
+                        <p className="text-xs lg:text-sm text-slate-500 mt-1 line-clamp-2 break-words">
+                          {item.note || "No description provided..."}
+                        </p>
 
-{item.note && (
-  <p className="text-sm text-slate-500 mt-2 break-words">
-    {item.note}
-  </p>
-)}
-
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-[11px] font-black uppercase">
-                            <span className="text-slate-400">Progress</span>
+                        {/* 🔥 PROGRESS */}
+                        <div className="mt-3">
+                          <div className="flex justify-between text-[10px] font-bold uppercase">
+                            <span className="text-slate-500/80">Progress</span>
                             <span
                               className={
-                                isDone ? "text-emerald-500" : "text-[#7165E3]"
+                                isDone ? "text-emerald-500" : "text-blue-500"
                               }
                             >
-                              {item.progress}%
+                              {item.progress || 0}%
                             </span>
                           </div>
 
-                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div className="mt-1 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div
-                              className={`h-full transition-all duration-1000 ${
-                                isDone ? "bg-emerald-500" : item.color
+                              className={`h-full transition-all duration-700 ${
+                                isDone
+                                  ? "bg-emerald-500"
+                                  : isOverdue
+                                    ? "bg-red-500"
+                                    : item.color
                               }`}
-                              style={{ width: `${item.progress}%` }}
+                              style={{ width: `${item.progress || 0}%` }}
                             />
-
-
-                            
                           </div>
-
-
-                          {!isDone && (
-  <input
-  type="range"
-  min="0"
-  max="100"
-  value={item.progress}
-  onChange={(e) => {
-    // 🔥 ONLY UI UPDATE (instant)
-    const newVal = Number(e.target.value);
-
-    setAssignments((prev) =>
-      prev.map((t) =>
-        t._id === item._id ? { ...t, progress: newVal } : t
-      )
-    );
-  }}
-  onMouseUp={async (e) => {
-    // 🔥 API CALL ONLY ON RELEASE
-    await API.put(`/task/progress/${item._id}`, {
-      progress: Number(e.target.value),
-    });
-    fetchTasks();
-  }}
-  className="w-full mt-3 accent-indigo-500"
-/>
-)}
-
-
                         </div>
                       </div>
                     );
                   })}
 
+                  {visibleCount < activeTasks.length && (
+                    <div className="col-span-1 lg:col-span-2 text-center mt-4">
+                      <button
+                        onClick={() => setVisibleCount((prev) => prev + 3)}
+                        className="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl"
+                      >
+                        Show {Math.min(3, activeTasks.length - visibleCount)}{" "}
+                        More
+                      </button>
+                    </div>
+                  )}
 
+                  {/* 🔥 SECTION TITLE */}
+                  {recentCompleted.length > 0 && (
+                    <h4 className="col-span-1 lg:col-span-2 text-xs font-bold text-slate-400 mt-6 border-t pt-3">
+                      Recently Completed
+                    </h4>
+                  )}
 
-                  {visibleCount < visibleAssignments.length && (
-  <div className="col-span-2 text-center mt-4">
-    <button
-      onClick={() => setVisibleCount((prev) => prev + 3)}
-      className="text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition"
-    >
-      Show More
-    </button>
-  </div>
-)}
+                  <p className="col-span-1 lg:col-span-2 text-[10px] text-slate-400">
+                    Showing {Math.min(completedCount, recentCompleted.length)}{" "}
+                    of {recentCompleted.length} completed
+                  </p>
 
+                  {/* 🔥 COMPLETED TASKS (USE SAME CARD UI) */}
+                  {recentCompleted.slice(0, completedCount).map((item) => {
+                    const isDone = true;
+                    const isLoading = loadingId === item._id;
 
+                    return (
+                      <div
+                        key={item._id}
+                        className={`w-full bg-green-200/30 p-4 sm:p-6 rounded-3xl border transition-all duration-300
+  border-emerald-500 bg-emerald-50/40
+  ${isLoading ? "opacity-50 pointer-events-none" : ""}
+`}
+                      >
+                        {/* 🔥 HEADER */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          {/* ICON */}
+                          <div className="p-2 rounded-xl bg-emerald-500 text-white shrink-0">
+                            <BookOpen size={16} />
+                          </div>
 
+                          {/* STATUS + ACTION */}
+                          <div className="flex flex-col items-end text-right">
+                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
+                              Completed
+                            </span>
 
-                  {assignments.some((a) => a.status === "COMPLETED") && (
-  <div className="text-center mt-4">
-    <button
-      onClick={() => setShowAllCompleted(!showAllCompleted)}
-      className="text-xs font-bold text-indigo-600"
-    >
-      {showAllCompleted ? "Show Less" : "Show Completed"}
-    </button>
-  </div>
-)}
+                            <button
+                              onClick={() => handleComplete(item._id)}
+                              className="mt-2 text-[10px] font-bold px-3 py-1 rounded-full 
+        bg-white border border-emerald-200 text-emerald-600 
+        hover:bg-emerald-100 transition-all"
+                            >
+                              Undo
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 🔥 TITLE */}
+                        <h4 className="font-bold text-base sm:text-lg line-through text-slate-400 leading-snug">
+                          {item.title}
+                        </h4>
+
+                        {/* 🔥 DESCRIPTION */}
+                        <p className="text-sm text-slate-400 mt-1 line-clamp-2 break-words">
+                          {item.note || "No description provided"}
+                        </p>
+
+                        {/* 🔥 FOOTER */}
+                        <div className="flex justify-between items-center mt-3 text-[11px]">
+                          <span className="text-emerald-500 font-semibold">
+                            ✔ Done
+                          </span>
+
+                          <span className="text-slate-400">
+                            {item.due_date
+                              ? new Date(item.due_date).toLocaleDateString()
+                              : ""}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {completedCount < recentCompleted.length && (
+                    <div className="col-span-1 lg:col-span-2 text-center mt-2">
+                      <button
+                        onClick={() => setCompletedCount((prev) => prev + 2)}
+                        className="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl"
+                      >
+                        Show{" "}
+                        {Math.min(2, recentCompleted.length - completedCount)}{" "}
+                        More Completed
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* DAILY HUSTLE (Updated Add Section) */}
-                <div className="mt-10">
+                <div className="mt-5 lg:mt-10">
                   {/* IMPACTFUL ADD FORM */}
-                  <div className="space-y-4 mb-8">
-                    <div className="flex items-center justify-between">
+                  <div className="space-y-2 lg:space-y-4 mb-8">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
                       <h3 className="text-lg font-black text-slate-900">
-                        Today's Hustle
+                        {hustleView === "TODAY" && "Today's Hustle"}
+                        {hustleView === "YESTERDAY" && "Yesterday's Hustle"}
+                        {hustleView === "WEEK" && "This Week Hustle"}
                       </h3>
+
+                      {/* 🔥 FILTER BUTTONS */}
+                      <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+                        {["TODAY", "YESTERDAY", "WEEK"].map((type) => (
+                          <button
+                            key={type}
+                            onClick={() => setHustleView(type)}
+                            className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all
+        ${
+          hustleView === type
+            ? "bg-white shadow text-blue-600"
+            : "text-slate-400"
+        }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+
                       <button
                         onClick={() => setIsFormOpen(!isFormOpen)}
-                        className={`p-2 rounded-xl transition-all ${isFormOpen ? "bg-red-100 text-red-500 rotate-45" : "bg-[#7165E3] text-white"}`}
+                        className={`hidden md:block p-2 rounded-xl transition-all ${isFormOpen ? "bg-red-100 text-red-500 rotate-45" : "bg-blue-600 text-white"}`}
                       >
                         <Plus size={20} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-end md:hidden gap-2">
+                      <p className="text-xs font-bold text-slate-400">
+                        Create Task
+                      </p>
+                      <button
+                        onClick={() => setIsFormOpen(!isFormOpen)}
+                        className={`md:hidden p-2 rounded-xl transition-all ${isFormOpen ? "bg-red-100 text-red-500 rotate-45" : "bg-blue-600 text-white"}`}
+                      >
+                        <Plus size={15} />
                       </button>
                     </div>
 
@@ -482,7 +650,7 @@ const visibleAssignments = assignments.filter((item) => {
                               Task Headline
                             </label>
                             <input
-                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
                               placeholder="e.g. Physics Lab Report"
                               value={dailyForm.title}
                               onChange={(e) =>
@@ -497,13 +665,14 @@ const visibleAssignments = assignments.filter((item) => {
                           {/* Keywords with Pills */}
                           <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase ml-2">
-                              Keywords (Press Comma to separate)
+                              Keywords (Press Comma, space, fullstop to
+                              separate)
                             </label>
                             <div className="flex flex-wrap gap-2 p-2 bg-slate-50 rounded-xl min-h-[44px]">
                               {tempTags.map((tag, i) => (
                                 <span
                                   key={i}
-                                  className="flex items-center gap-1 bg-white border border-indigo-100 text-[#7165E3] text-[10px] font-bold px-2 py-1 rounded-lg"
+                                  className="flex items-center gap-1 bg-white border border-blue-100 text-[#7165E3] text-[10px] font-bold px-2 py-1 rounded-lg"
                                 >
                                   {tag}
                                   <X
@@ -523,13 +692,35 @@ const visibleAssignments = assignments.filter((item) => {
                                   tempTags.length === 0 ? "Urgent, Exam..." : ""
                                 }
                                 value={dailyForm.tags}
-                                onKeyDown={handleKeyDown}
-                                onChange={(e) =>
-                                  setDailyForm({
-                                    ...dailyForm,
-                                    tags: e.target.value,
-                                  })
-                                }
+                                onKeyDown={(e) => {
+                                  handleKeyDown(e);
+
+                                  // 🔥 Prevent form submit
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+
+                                  // Split by space, comma, dot
+                                  if (/[\s,\.]/.test(value)) {
+                                    const parts = value
+                                      .split(/[\s,\.]+/)
+                                      .map((t) => t.trim())
+                                      .filter(Boolean);
+
+                                    if (parts.length > 0) {
+                                      setTempTags((prev) => [
+                                        ...new Set([...prev, ...parts]),
+                                      ]);
+                                      setDailyForm({ ...dailyForm, tags: "" });
+                                      return;
+                                    }
+                                  }
+
+                                  setDailyForm({ ...dailyForm, tags: value });
+                                }}
                               />
                             </div>
                           </div>
@@ -542,7 +733,7 @@ const visibleAssignments = assignments.filter((item) => {
                           </label>
                           <div className="flex gap-3">
                             <input
-                              className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                              className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
                               placeholder="Write down the important details..."
                               value={dailyForm.note}
                               onChange={(e) =>
@@ -554,7 +745,13 @@ const visibleAssignments = assignments.filter((item) => {
                             />
                             <button
                               onClick={addDaily}
-                              className="bg-[#7165E3] hover:bg-[#5b51c5] text-white px-6 rounded-xl font-black text-xs transition-all shadow-lg shadow-indigo-100"
+                              disabled={!dailyForm.title}
+                              className={`px-6 rounded-xl font-black text-xs transition-all
+  ${
+    dailyForm.title
+      ? "bg-[#7165E3] text-white hover:bg-[#5b51c5]"
+      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+  }`}
                             >
                               ADD TASK
                             </button>
@@ -565,24 +762,26 @@ const visibleAssignments = assignments.filter((item) => {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {dailyTasks.map((task) => {
+                    {dailyTasks.slice(0, dailyVisible).map((task) => {
                       const isExpanded = expandedTasks[task._id];
                       const isDone = task.status === "DONE";
 
                       // Smart logic for UI states
                       const needsToggle =
-                        task.title?.length > 40 ||
-                        task.note?.length > 120 ||
-                        (task.tags || []).join("").length > 50;
+                        (task.title && task.title.length > 40) ||
+                        (task.note && task.note.length > 100) ||
+                        (task.tags && task.tags.length > 3) || // 🔥 MANY TAGS
+                        (task.tags && task.tags.join(" ").length > 40); // 🔥 LONG TAG TEXT
 
                       return (
                         <div
                           key={task._id}
-                          className={`group relative overflow-hidden rounded-[24px] border transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 ${
-                            isDone
-                              ? "bg-emerald-50/30 border-emerald-100/60 shadow-none"
-                              : "bg-white border-slate-100 shadow-sm"
-                          }`}
+                          className={`group relative overflow-hidden rounded-2xl border lg:p-3 transition-all duration-300
+${
+  isDone
+    ? "bg-emerald-50 border-emerald-200"
+    : "bg-white border-slate-100 hover:shadow-md"
+}`}
                         >
                           {/* Progress highlight for done tasks */}
                           {isDone && (
@@ -597,7 +796,7 @@ const visibleAssignments = assignments.filter((item) => {
                                 className={`relative flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 transform active:scale-90 ${
                                   isDone
                                     ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200"
-                                    : "bg-slate-50 border border-slate-200 text-slate-400 hover:border-indigo-400 hover:text-indigo-500"
+                                    : "bg-slate-50 border border-slate-200 text-slate-400 hover:border-blue-400 hover:text-blue-500"
                                 }`}
                               >
                                 <CheckCircle2
@@ -624,6 +823,47 @@ const visibleAssignments = assignments.filter((item) => {
                                   {task.title}
                                 </h4>
 
+                                <p className="text-xs text-slate-400 font-bold">
+                                  {new Date(task.createdAt).toLocaleDateString(
+                                    "en-IN",
+                                    {
+                                      weekday: "short",
+                                      day: "numeric",
+                                      month: "short",
+                                    },
+                                  )}
+                                </p>
+
+                                {/* 🔥 DESCRIPTION PREVIEW */}
+                                {task.note && (
+                                  <p className="text-sm text-slate-500 mt-1 break-words">
+                                    {isExpanded
+                                      ? task.note
+                                      : task.note?.length > 80
+                                        ? task.note.slice(0, 80) + "..."
+                                        : task.note}
+                                  </p>
+                                )}
+
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {(task.tags?.length ? task.tags : ["General"])
+                                    .slice(0, isExpanded ? task.tags.length : 2)
+                                    .map((tag, i) => (
+                                      <span
+                                        key={i}
+                                        className="px-2 py-1 text-[10px] font-bold rounded-md bg-blue-50 text-blue-600 break-all"
+                                      >
+                                        #{tag}
+                                      </span>
+                                    ))}
+
+                                  {!isExpanded && task.tags?.length > 3 && (
+                                    <span className="text-[10px] text-slate-400 font-bold">
+                                      +{task.tags.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+
                                 {/* Optional dynamic timestamp or priority badge could go here */}
                               </div>
                             </div>
@@ -633,7 +873,7 @@ const visibleAssignments = assignments.filter((item) => {
                               {needsToggle && (
                                 <button
                                   onClick={() => toggleReadMore(task._id)}
-                                  className="text-xs font-bold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                                  className="text-xs font-bold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                                 >
                                   {isExpanded ? "Less" : "Details"}
                                 </button>
@@ -647,41 +887,22 @@ const visibleAssignments = assignments.filter((item) => {
                               </button>
                             </div>
                           </div>
-
-                          {/* ✅ EXPANDABLE DETAILS AREA */}
-                          <div
-                            className={`transition-all duration-500 ease-in-out px-4 sm:px-6 overflow-hidden ${
-                              isExpanded
-                                ? "max-h-[500px] pb-6 opacity-100"
-                                : "max-h-0 opacity-0"
-                            }`}
-                          >
-                            <div className="pt-2 space-y-4 border-t border-slate-50">
-                              {task.note && (
-                                <p className="text-sm sm:text-base text-slate-500 leading-relaxed italic break-words overflow-wrap-anywhere ">
-                                  {task.note}
-                                </p>
-                              )}
-
-                              <div className="flex flex-wrap gap-2">
-                                {(task.tags?.length
-                                  ? task.tags
-                                  : ["General"]
-                                ).map((tag, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-3 py-1 text-[11px] font-extrabold rounded-lg bg-indigo-50/50 text-indigo-600 border border-indigo-100/50 uppercase tracking-wider  break-all max-w-full inline-block"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       );
                     })}
                   </div>
+
+                  {dailyVisible < dailyTasks.length && (
+                    <div className="text-center mt-4">
+                      <button
+                        onClick={() => setDailyVisible((prev) => prev + 3)}
+                        className="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl"
+                      >
+                        Show {Math.min(3, dailyTasks.length - dailyVisible)}{" "}
+                        More Tasks
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -697,7 +918,7 @@ const visibleAssignments = assignments.filter((item) => {
                       {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
                         <div
                           key={i}
-                          className="flex-1 bg-indigo-50 rounded-t-lg hover:bg-[#7165E3] transition-colors"
+                          className="flex-1 bg-blue-50 rounded-t-lg hover:bg-[#7165E3] transition-colors"
                           style={{ height: `${h}%` }}
                         ></div>
                       ))}
@@ -705,7 +926,7 @@ const visibleAssignments = assignments.filter((item) => {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-[#7165E3] to-[#8B5CF6] p-8 rounded-[3rem] text-white shadow-xl shadow-indigo-100">
+                <div className="bg-gradient-to-br from-[#7165E3] to-[#8B5CF6] p-8 rounded-[3rem] text-white shadow-xl shadow-blue-100">
                   <div className="flex justify-between items-start mb-6">
                     <div className="p-3 bg-white/20 rounded-2xl">
                       <BarChart3 size={24} />
@@ -733,45 +954,104 @@ const visibleAssignments = assignments.filter((item) => {
 
           {/* MODAL FOR ADDING QUESTS */}
           {showQuestModal && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-black">New Academic Quest</h3>
-                  <button onClick={() => setShowQuestModal(false)}>
-                    <X className="text-slate-300" />
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  <input
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none"
-                    placeholder="Assignment Title"
-                    value={newQuest.title}
-                    onChange={(e) =>
-                      setNewQuest({ ...newQuest, title: e.target.value })
-                    }
-                  />
-                  <textarea
-  className="w-full p-4 bg-slate-50 rounded-2xl outline-none"
-  placeholder="Description..."
-  value={newQuest.note}
-  onChange={(e) =>
-    setNewQuest({ ...newQuest, note: e.target.value })
-  }
-/>
-                  <input
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none"
-                    type="date"
-                    value={newQuest.deadline}
-                    onChange={(e) =>
-                      setNewQuest({ ...newQuest, deadline: e.target.value })
-                    }
-                  />
-                  <button
-  onClick={addAssignment}
-  className="w-full py-4 bg-[#7165E3] text-white rounded-2xl font-black shadow-xl"
->
-  ADD TO LIST
-</button>
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-300">
+              {/* Backdrop with a heavier blur for focus */}
+              <div
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                onClick={() => setShowQuestModal(false)}
+              />
+
+              {/* Modal Container */}
+              <div
+                className="relative bg-white w-full max-w-lg overflow-hidden shadow-2xl 
+      rounded-t-[2rem] sm:rounded-[2.5rem] 
+      animate-in fade-in slide-in-from-bottom-10 duration-300"
+              >
+                {/* Decorative Top Accent */}
+                <div className="h-2 w-full bg-gradient-to-r from-[#7165E3] to-[#9288f8]" />
+
+                <div className="p-6 sm:p-10">
+                  <div className="flex justify-between items-center mb-8">
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+                        New Academic Quest
+                      </h3>
+                      <p className="text-slate-400 text-sm font-medium">
+                        Add a task to your journey
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowQuestModal(false)}
+                      className="p-2 hover:bg-slate-100 rounded-full transition-colors group"
+                    >
+                      <X
+                        className="text-slate-400 group-hover:text-slate-600"
+                        size={24}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Title Input Group */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                        Mission Title
+                      </label>
+                      <input
+                        className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-[#7165E3]/20 focus:bg-white rounded-2xl outline-none transition-all text-slate-700 font-medium"
+                        placeholder="e.g. Advanced Calculus Paper"
+                        value={newQuest.title}
+                        onChange={(e) =>
+                          setNewQuest({ ...newQuest, title: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    {/* Description Group */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                        Briefing (Optional)
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-[#7165E3]/20 focus:bg-white rounded-2xl outline-none transition-all text-slate-700 resize-none font-medium"
+                        placeholder="What needs to be done?"
+                        value={newQuest.note}
+                        onChange={(e) =>
+                          setNewQuest({ ...newQuest, note: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    {/* Date Picker Group */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                        Deadline
+                      </label>
+                      <div className="relative">
+                        <input
+                          className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-[#7165E3]/20 focus:bg-white rounded-2xl outline-none transition-all text-slate-700 font-medium appearance-none"
+                          type="date"
+                          value={newQuest.deadline}
+                          onChange={(e) =>
+                            setNewQuest({
+                              ...newQuest,
+                              deadline: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={addAssignment}
+                      className="w-full py-4 bg-[#7165E3] hover:bg-[#5f52d3] text-white rounded-2xl font-black text-lg shadow-lg shadow-blue-200 transition-all transform active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
+                    >
+                      <PlusCircle size={20} />
+                      EMBARK ON QUEST
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -784,7 +1064,7 @@ const visibleAssignments = assignments.filter((item) => {
 
 const NavItem = ({ icon, label, active = false }) => (
   <div
-    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl cursor-pointer transition-all ${active ? "bg-[#7165E3] text-white shadow-lg shadow-indigo-100" : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"}`}
+    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl cursor-pointer transition-all ${active ? "bg-[#7165E3] text-white shadow-lg shadow-blue-100" : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"}`}
   >
     {icon}
     <span className="font-bold text-sm">{label}</span>
