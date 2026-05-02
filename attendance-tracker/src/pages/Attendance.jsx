@@ -368,6 +368,30 @@ const Attendance = () => {
   const perfect = calculateImpact(impactDays, "perfect");
   const bunk = calculateImpact(impactDays, "bunk");
 
+  const getMonthlyStats = () => {
+    let total = 0;
+    let present = 0;
+
+    attendanceData.forEach((day) => {
+      const d = new Date(day.date);
+
+      // ✅ Only current calendar month
+      if (d.getMonth() === month && d.getFullYear() === year) {
+        const slots = day.slots || [];
+
+        total += slots.length;
+
+        present += slots.filter((s) => s.status === "PRESENT").length;
+      }
+    });
+
+    const percent = total ? Math.round((present / total) * 100) : 0;
+
+    return { total, present, percent };
+  };
+
+  const monthlyStats = getMonthlyStats();
+
   return (
     <div>
       <Navbar />
@@ -593,6 +617,35 @@ const Attendance = () => {
                   </div>
 
                   {/* Month Navigation */}
+
+                  <div className="mt-2 flex justify-between px-1 text-center">
+  
+  <p className="text-[10px] text-white/80 font-bold">
+    {monthlyStats.total === 0
+      ? "No Classes"
+      : `${monthlyStats.present}/${monthlyStats.total} Classes`}
+  </p>
+
+  <p
+    className={`text-xs font-black ${
+      monthlyStats.total === 0
+        ? "text-white/50" // ✅ neutral color (no panic)
+        : monthlyStats.percent >= target
+        ? "text-emerald-300"
+        : "text-red-300"
+    }`}
+  >
+    {monthlyStats.total === 0
+      ? `No Data for ${currentDate.toLocaleString("default", {
+          month: "long",
+        })}`
+      : `${monthlyStats.percent}% Attendance on ${currentDate.toLocaleString(
+          "default",
+          { month: "long" }
+        )}`}
+  </p>
+
+</div>
                   <div className="flex justify-between items-center px-2 mb-3">
                     <button
                       onClick={() =>
@@ -648,7 +701,9 @@ const Attendance = () => {
                       return (
                         <button
                           key={i}
-                          onClick={() => !loadingType && setSelectedDate(dateObj)}
+                          onClick={() =>
+                            !loadingType && setSelectedDate(dateObj)
+                          }
                           className={`
         aspect-square flex items-center justify-center rounded-2xl text-[12px] font-black transition-all border backdrop-blur-md
         ${
@@ -890,7 +945,7 @@ const Attendance = () => {
                   {/* CALENDAR MINI */}
                   <div className="hidden lg:block bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 shadow-xl shadow-blue-500/20">
                     {/* Header with Legend */}
-                    <div className="flex justify-between items-center mb-8">
+                    <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2 text-white">
                         <CalendarIcon size={18} className="opacity-80" />
                         <h2 className="text-sm font-black uppercase tracking-widest">
@@ -913,6 +968,39 @@ const Attendance = () => {
                       </div>
                     </div>
 
+
+
+
+<div className="mt-2 flex justify-between px-1 text-center">
+  
+  <p className="text-[10px] text-white/80 font-bold">
+    {monthlyStats.total === 0
+      ? "No Classes"
+      : `${monthlyStats.present}/${monthlyStats.total} Classes`}
+  </p>
+
+  <p
+    className={`text-xs font-black ${
+      monthlyStats.total === 0
+        ? "text-white/50" // ✅ neutral color (no panic)
+        : monthlyStats.percent >= target
+        ? "text-emerald-300"
+        : "text-red-300"
+    }`}
+  >
+    {monthlyStats.total === 0
+      ? `No Data for ${currentDate.toLocaleString("default", {
+          month: "long",
+        })}`
+      : `${monthlyStats.percent}% Attendance on ${currentDate.toLocaleString(
+          "default",
+          { month: "long" }
+        )}`}
+  </p>
+
+</div>
+
+                  
                     {/* Month Navigation */}
                     <div className="flex justify-between items-center px-2 mb-8">
                       <button
@@ -969,7 +1057,9 @@ const Attendance = () => {
                         return (
                           <button
                             key={i}
-                            onClick={() => !loadingType && setSelectedDate(dateObj)}
+                            onClick={() =>
+                              !loadingType && setSelectedDate(dateObj)
+                            }
                             className={`
         aspect-square flex items-center justify-center rounded-2xl text-[12px] font-black transition-all border backdrop-blur-md
         ${
