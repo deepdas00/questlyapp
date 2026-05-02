@@ -84,17 +84,27 @@ export const toggleTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    if (task.type === "DAILY") {
-      task.status = task.status === "DONE" ? "TODO" : "DONE";
-    }
+   if (task.type === "DAILY") {
+  if (task.status === "DONE") {
+    task.status = "TODO";
+    task.completedAt = null;
+  } else {
+    task.status = "DONE";
+    task.completedAt = new Date(); // 🔥 ADD THIS
+  }
+}
 
-    if (task.type === "ASSIGNMENT") {
+  if (task.type === "ASSIGNMENT") {
   if (task.status === "COMPLETED") {
+    // 🔄 Undo
     task.status = "IN_PROGRESS";
     task.progress = 0;
+    task.completedAt = null; // ❌ remove completion time
   } else {
+    // ✅ Mark complete
     task.status = "COMPLETED";
     task.progress = 100;
+    task.completedAt = new Date(); // 🔥 SAVE TIME
   }
 }
 
@@ -151,11 +161,13 @@ export const updateProgress = async (req, res) => {
 
     task.progress = progress;
 
-    if (progress === 100) {
-      task.status = "COMPLETED";
-    } else if (progress > 0) {
-      task.status = "IN_PROGRESS";
-    }
+   if (progress === 100) {
+  task.status = "COMPLETED";
+  task.completedAt = new Date(); // 🔥 ADD
+} else if (progress > 0) {
+  task.status = "IN_PROGRESS";
+  task.completedAt = null; // optional but clean
+}
 
     await task.save();
 

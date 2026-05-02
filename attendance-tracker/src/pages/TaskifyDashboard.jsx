@@ -271,7 +271,9 @@ const StudentDashboard = () => {
 
   const completedTasks = assignments.filter((t) => t.status === "COMPLETED");
 
-  const recentCompleted = completedTasks;
+  const recentCompleted = completedTasks.sort((a, b) => {
+    return new Date(b.completedAt) - new Date(a.completedAt);
+  });
 
   const displayList = [...paginatedActive, ...recentCompleted];
 
@@ -334,29 +336,31 @@ const StudentDashboard = () => {
 
   const streak = calculateStreak();
 
-const getWeeklyStats = () => {
-  const days = Array(7).fill(null).map(() => ({
-    done: 0,
-    total: 0,
-  }));
+  const getWeeklyStats = () => {
+    const days = Array(7)
+      .fill(null)
+      .map(() => ({
+        done: 0,
+        total: 0,
+      }));
 
-  allDailyTasks.forEach((task) => {
-    const d = new Date(task.createdAt).getDay();
+    allDailyTasks.forEach((task) => {
+      const d = new Date(task.createdAt).getDay();
 
-    days[d].total++; // ✅ count all tasks
+      days[d].total++; // ✅ count all tasks
 
-    if (task.status === "DONE") {
-      days[d].done++; // ✅ count completed
-    }
-  });
+      if (task.status === "DONE") {
+        days[d].done++; // ✅ count completed
+      }
+    });
 
-  const max = Math.max(...days.map((d) => d.done), 1);
+    const max = Math.max(...days.map((d) => d.done), 1);
 
-  return days.map((d) => ({
-    ...d,
-    height: (d.done / max) * 100, // based on DONE
-  }));
-};
+    return days.map((d) => ({
+      ...d,
+      height: (d.done / max) * 100, // based on DONE
+    }));
+  };
 
   const weeklyData = getWeeklyStats();
 
@@ -916,11 +920,24 @@ ${
 
                         {/* 🔥 FOOTER */}
                         <div className="flex justify-between items-center mt-3 text-[11px]">
-                          <span className="text-emerald-500 font-semibold">
-                            ✔ Done
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-500 font-semibold">
+                              ✔ Done
+                            </span>
 
-                          <span className="text-slate-400">
+                            {item.status === "COMPLETED" &&
+                              item.completedAt && (
+                                <span className="text-[9px] text-slate-400">
+                                  Completed on{" "}
+                                  {new Date(
+                                    item.completedAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              )}
+                          </div>
+
+                          <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-lg ">
+                            Due Date:{" "}
                             {item.due_date
                               ? new Date(item.due_date).toLocaleDateString()
                               : ""}
@@ -1274,28 +1291,33 @@ ${
                     </p>
 
                     <div className="flex items-end justify-between h-32 gap-2 mb-6">
-                 {weeklyData.map((day, i) => (
-  <div key={i} className="flex flex-col items-center flex-1">
+                      {weeklyData.map((day, i) => (
+                        <div
+                          key={i}
+                          className="flex flex-col items-center flex-1"
+                        >
+                          {/* NUMBER */}
+                          <span className="text-[9px] text-slate-400">
+                            {day.total
+                              ? Math.round((day.done / day.total) * 100)
+                              : 0}
+                            %
+                          </span>
 
-    {/* NUMBER */}
-    <span className="text-[9px] text-slate-400">
-  {day.total ? Math.round((day.done / day.total) * 100) : 0}%
-</span>
+                          {/* BAR CONTAINER (IMPORTANT) */}
+                          <div className="w-full h-32 flex items-end">
+                            <div
+                              className="w-full bg-blue-50 rounded-t-lg hover:bg-[#7165E3] transition-all"
+                              style={{ height: `${day.height}%` }}
+                            />
+                          </div>
 
-    {/* BAR CONTAINER (IMPORTANT) */}
-    <div className="w-full h-32 flex items-end">
-      <div
-        className="w-full bg-blue-50 rounded-t-lg hover:bg-[#7165E3] transition-all"
-        style={{ height: `${day.height}%` }}
-      />
-    </div>
-
-    {/* LABEL */}
-    <span className="text-[9px] text-slate-400 mt-1">
-      {["S","M","T","W","T","F","S"][i]}
-    </span>
-  </div>
-))}
+                          {/* LABEL */}
+                          <span className="text-[9px] text-slate-400 mt-1">
+                            {["S", "M", "T", "W", "T", "F", "S"][i]}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1338,27 +1360,29 @@ ${
 
                   <div className="flex items-end h-32 gap-1">
                     {overallData.map((day, i) => (
-  <div key={i} className="flex flex-col items-center flex-1">
+                      <div
+                        key={i}
+                        className="flex flex-col items-center flex-1"
+                      >
+                        {/* DATA */}
+                        <span className="text-[9px] text-slate-400">
+                          {day.done}/{day.total}
+                        </span>
 
-    {/* DATA */}
-    <span className="text-[9px] text-slate-400">
-      {day.done}/{day.total}
-    </span>
+                        {/* BAR CONTAINER */}
+                        <div className="w-full h-32 flex items-end">
+                          <div
+                            className="w-full bg-blue-100 rounded-t-md hover:bg-blue-500 transition-all"
+                            style={{ height: `${day.percent}%` }}
+                          />
+                        </div>
 
-    {/* BAR CONTAINER */}
-    <div className="w-full h-32 flex items-end">
-      <div
-        className="w-full bg-blue-100 rounded-t-md hover:bg-blue-500 transition-all"
-        style={{ height: `${day.percent}%` }}
-      />
-    </div>
-
-    {/* DATE */}
-    <span className="text-[8px] text-slate-300 mt-1">
-      {new Date(day.date).getDate()}
-    </span>
-  </div>
-))}
+                        {/* DATE */}
+                        <span className="text-[8px] text-slate-300 mt-1">
+                          {new Date(day.date).getDate()}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
                   <p className="text-xs text-slate-500 mt-3 font-semibold">

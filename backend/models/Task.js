@@ -72,7 +72,12 @@ const taskSchema = new mongoose.Schema({
   time_label: {
     type: String,
     default: ""
-  }
+  },
+
+  completedAt: {
+  type: Date,
+  default: null,
+},
 
 }, { timestamps: true });
 
