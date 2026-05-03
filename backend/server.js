@@ -12,7 +12,9 @@ import routineRoutes from "./routes/routineRoutes.js";
 import semesterRoutes from "./routes/semesterRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
-
+import projectWorkspaceRoutes from "./routes/projectWorkspace.routes.js";
+import projectTaskRoutes from "./routes/projectTask.routes.js";
+import projectInviteRoutes from "./routes/projectInvite.routes.js";
 
 
 dotenv.config();
@@ -57,6 +59,9 @@ app.use("/api/semester", semesterRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/subject", subjectRoutes);
 app.use("/api/task", taskRoutes);
+app.use("/api/project-workspace", projectWorkspaceRoutes);
+app.use("/api/project-tasks", projectTaskRoutes);
+app.use("/api/project-invite", projectInviteRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

@@ -37,11 +37,11 @@ const Navbar = () => {
   const menuItems = isLoggedIn
     ? [
         { name: "Dashboard", icon: LayoutDashboard, path: "/home" },
-        { name: "Attendance", icon: CheckSquare, path: "/attendance" },
+        { name: "Attendance Analytics", icon: CheckSquare, path: "/attendance" },
         { name: "SmartCompass", icon: Target, path: "/smart-compass" },
         { name: "Academic Vault", icon: BookOpen, path: "/academic" },
-        { name: "Live Schedule", icon: Calendar, path: "/live-schedule" },
-        { name: "Project Camp", icon: CheckSquare, path: "/project-camp" },
+        { name: "Task Center", icon: Calendar, path: "/live-schedule" },
+        { name: "Team Projects", icon: CheckSquare, path: "/project-camp" },
         { name: "Smart Setting", icon: Settings, path: "/smart-setting" },
       ]
     : [
