@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import API from "../utils/api";
-
+import logo from "../assets/logoNavFinal.jpg";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -61,61 +61,53 @@ const Navbar = () => {
     setOpen(false);
   };
 
-
-
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    // 🔥 Login
-    await API.post("/auth/login", formData);
+    try {
+      // 🔥 Login
+      await API.post("/auth/login", formData);
 
-    // 🔥 Get user from cookie
-    const res = await API.get("/auth/check");
+      // 🔥 Get user from cookie
+      const res = await API.get("/auth/check");
 
-    setUser(res.data.user);
+      setUser(res.data.user);
 
-    navigate("/home");
-  } catch (err) {
-    setError(err.response?.data?.message || "Login failed");
-  } finally {
-    setLoading(false);
-  }
-};
+      navigate("/home");
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const { setUser } = useContext(AuthContext);
 
+  const handleLogout = async () => {
+    await API.post("/auth/logout");
+    setUser(null);
+    navigate("/");
+  };
 
-const { setUser } = useContext(AuthContext);
-
-const handleLogout = async () => {
-  await API.post("/auth/logout");
-  setUser(null);
-  navigate("/");
-};
-
-
-
-const isLandingPage = location.pathname === "/";
-
-
+  const isLandingPage = location.pathname === "/";
 
   return (
     <>
       {/* 🔝 NAVBAR */}
       <header className="w-full sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div className="flex items-center justify-between px-4 py-2 lg:px-8 lg:py-4">
+        <div className="flex items-center justify-between px-4 py-1.5 md:px-8 md:py-2">
           {/* Logo */}
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-6 h-6 lg:w-10 lg:h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-              <span className="text-white font-black text-[15px] lg:text-xl">
-                C
-              </span>
-            </div>
+            <img
+              src={logo}
+              alt="Questly Logo"
+              className="w-8 h-8 lg:w-11 lg:h-11 object-cover rounded-xl"
+            />
+
             <span className="font-black text-[15px] lg:text-xl tracking-tight text-slate-800">
-              CAMPUS.OS
+              QUESTLY
             </span>
           </div>
 
@@ -208,8 +200,9 @@ const isLandingPage = location.pathname === "/";
           <div className="p-5 mt-auto">
             <div className="bg-slate-50 rounded-[2rem] p-1.5 border border-slate-100">
               <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-3 px-4 py-4 text-red-500 font-black text-sm rounded-[1.6rem] hover:bg-white hover:shadow-sm transition-all group">
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-3 px-4 py-4 text-red-500 font-black text-sm rounded-[1.6rem] hover:bg-white hover:shadow-sm transition-all group"
+              >
                 <LogOut
                   size={18}
                   strokeWidth={3}
