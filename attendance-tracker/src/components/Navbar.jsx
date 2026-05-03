@@ -93,6 +93,8 @@ const Navbar = () => {
 
   const isLandingPage = location.pathname === "/";
 
+
+  
   return (
     <>
       {/* 🔝 NAVBAR */}
@@ -114,7 +116,7 @@ const Navbar = () => {
           {/* Desktop Nav would go here, Mobile toggle below */}
           <button
             onClick={() => setOpen(true)}
-            className="md:hidden p-2 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors"
+            className={`${isLandingPage ? "block" : "lg:hidden"} p-2 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors`}
           >
             <Menu className="w-4 h-4 text-slate-600" strokeWidth={2.5} />
           </button>
@@ -212,7 +214,7 @@ const Navbar = () => {
               </button>
             </div>
             <p className="text-center text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-5 mb-0">
-              Campus.OS v2.0
+              QUESTLY v2.0
             </p>
           </div>
         )}
