@@ -33,6 +33,7 @@ const Attendance = () => {
   // const [target] = useState(75);
   // const [daysLeft] = useState(30);
   // const [classesPerDay] = useState(5);
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [predictDays, setPredictDays] = useState(5);
   const [loadingType, setLoadingType] = useState(null);
@@ -419,17 +420,17 @@ const Attendance = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <div className="h-[2px] w-6 bg-blue-600"></div>
                   <p className="text-[10px] font-black tracking-[0.2em] text-blue-600 uppercase">
-                    Attendance Tracker
+                    Attendance Insights
                   </p>
                 </div>
 
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter leading-none">
-                  Smart
-                  <span className="text-blue-600 ml-2">Compass</span>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+                  QUESTLY
+                  <span className="text-blue-600 ml-2">Attendance</span>
                 </h1>
 
                 <p className="text-slate-500 text-[7px] md:text-base font-medium mt-2 max-w-xs md:max-w-none">
-                  Track, analyze, and optimize your attendance
+                 Predict, analyze, and stay ahead of your attendance goals
                 </p>
               </div>
 
