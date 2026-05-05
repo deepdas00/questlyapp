@@ -973,7 +973,7 @@ ${
                       </h3>
 
                       {/* 🔥 FILTER BUTTONS */}
-                      <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+                      <div className="flex gap:1 md:gap-2 bg-slate-100 p-1 rounded-xl">
                         {["TODAY", "YESTERDAY", "WEEK"].map((type) => (
                           <button
                             key={type}
@@ -1096,11 +1096,11 @@ ${
                         </div>
 
                         {/* Description & Add Button */}
-                        <div className="space-y-1">
+                        <div className="space-y-1 flexz">
                           <label className="text-[10px] font-black text-slate-400 uppercase ml-2">
                             Key Points / Description
                           </label>
-                          <div className="flex gap-3">
+                          <div className="flex gap-3 flex-col md:flex-row">
                             <input
                               className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
                               placeholder="Write down the important details..."
@@ -1115,7 +1115,7 @@ ${
                             <button
                               onClick={addDaily}
                               disabled={!dailyForm.title || adding}
-                              className="px-6 rounded-xl font-black text-xs bg-[#7165E3] text-white flex items-center justify-center gap-2"
+                              className="px-6 rounded-xl font-black text-xs bg-[#7165E3] text-white flex items-center py-3 justify-center gap-2"
                             >
                               {adding ? (
                                 <>
