@@ -11,11 +11,14 @@ import SmartCompass from "./pages/SmartCompass";
 import PrivateRoute from "./components/PrivateRoute";
 import TaskifyDashboard from "./pages/TaskifyDashboard";
 import ScrollToTop from "./components/ScrollToTop";
+import InstallPrompt from "./components/InstallPrompt";
+
 
 function App() {
   return (
     <BrowserRouter>
     <ScrollToTop/>
+    <InstallPrompt />
       <Routes>
         
         <Route path="/" element={<LandingPage />} />
