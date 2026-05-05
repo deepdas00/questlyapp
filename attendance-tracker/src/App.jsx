@@ -10,11 +10,14 @@ import SmartSettings from "./pages/SmartSettings";
 import SmartCompass from "./pages/SmartCompass";
 import PrivateRoute from "./components/PrivateRoute";
 import TaskifyDashboard from "./pages/TaskifyDashboard";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   return (
     <BrowserRouter>
+    <ScrollToTop/>
       <Routes>
+        
         <Route path="/" element={<LandingPage />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
