@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Target, BookOpen, 
   Calendar, CheckSquare, LogOut, Settings,
-  Menu, X
+  Menu, X,
+  Download
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -20,6 +21,7 @@ const Sidebar = () => {
     { name: "Task Center", icon: Calendar, path: "/live-schedule" },
     { name: "Team Projects", icon: CheckSquare, path: "/project-camp" },
     { name: "Smart Setting", icon: Settings, path: "/smart-setting" },
+    { name: "Download QUESTLY", icon: Download, path: "/download" },
   ];
 
   const handleNavigate = (path) => {

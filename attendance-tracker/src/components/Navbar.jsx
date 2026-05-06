@@ -10,6 +10,7 @@ import {
   CheckSquare,
   Settings,
   LogOut,
+  Download,
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import API from "../utils/api";
@@ -37,12 +38,17 @@ const Navbar = () => {
   const menuItems = isLoggedIn
     ? [
         { name: "Dashboard", icon: LayoutDashboard, path: "/home" },
-        { name: "Attendance Analytics", icon: CheckSquare, path: "/attendance" },
+        {
+          name: "Attendance Analytics",
+          icon: CheckSquare,
+          path: "/attendance",
+        },
         { name: "SmartCompass", icon: Target, path: "/smart-compass" },
         { name: "Academic Vault", icon: BookOpen, path: "/academic" },
         { name: "Task Center", icon: Calendar, path: "/live-schedule" },
         { name: "Team Projects", icon: CheckSquare, path: "/project-camp" },
         { name: "Smart Setting", icon: Settings, path: "/smart-setting" },
+        { name: "Download QUESTLY", icon: Download, path: "/download" },
       ]
     : [
         { name: "Features", path: "#features" },
@@ -50,6 +56,7 @@ const Navbar = () => {
         { name: "Assignments", path: "#assignments" },
         { name: "Login", path: "/login" },
         { name: "Register", path: "/register" },
+        { name: "Download QUESTLY", path: "/download" },
       ];
 
   const handleNav = (path) => {
@@ -93,8 +100,6 @@ const Navbar = () => {
 
   const isLandingPage = location.pathname === "/";
 
-
-  
   return (
     <>
       {/* 🔝 NAVBAR */}
