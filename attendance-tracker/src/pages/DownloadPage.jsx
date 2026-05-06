@@ -62,7 +62,9 @@ const DownloadPage = () => {
       <div className="flex relative z-10">
         {/* SIDEBAR - Desktop Only */}
         
+   <div className="hidden lg:block">
           <Sidebar />
+        </div>
       
 
         {/* MAIN CONTENT */}
