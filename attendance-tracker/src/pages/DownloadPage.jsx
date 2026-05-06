@@ -79,9 +79,9 @@ const DownloadPage = () => {
               </div>
 
               <h1 className="text-4xl sm:text-6xl lg:text-8xl font-black tracking-tight leading-[1.1] max-w-4xl">
-                Download
-                <span className="text-blue-600 block sm:inline sm:ml-4">QUESTLY</span>
-              </h1>
+  Download
+  <span className="text-blue-600 ml-3">QUESTLY</span>
+</h1>
 
               <p className="mt-6 text-slate-500 text-base md:text-xl max-w-2xl mx-auto font-medium leading-relaxed px-4">
                 Transform your academic workflow into a smarter, faster, and
