@@ -9,6 +9,6 @@ self.addEventListener("push", (event) => {
   self.registration.showNotification(data.title, {
     body: data.body,
     icon: "/favicon.png",
-    badge: "/logo-192.png"
+    badge: "/icon-192.png"
   });
 });
