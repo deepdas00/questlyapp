@@ -29,7 +29,40 @@ router.get("/test", async (req, res) => {
 });
 
 
+router.get("/send-all", async (req, res) => {
+  try {
+    const users = await PushSubscription.find();
 
+    console.log("Users:", users.length);
+
+    if (!users.length) {
+      return res.send("❌ No users subscribed");
+    }
+
+    for (const user of users) {
+      await webpush.sendNotification(
+        user,
+        JSON.stringify({
+          title: "🔥 QUESTLY TEST",
+          body: "This is a force notification check 🚀",
+        })
+      ).catch(async (err) => {
+        console.log("Error:", err.statusCode);
+
+        // Remove expired users
+        if (err.statusCode === 410) {
+          await PushSubscription.deleteOne({ endpoint: user.endpoint });
+        }
+      });
+    }
+
+    res.send(`✅ Sent to ${users.length} users`);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ Error sending notifications");
+  }
+});
 
 router.post("/subscribe", async (req, res) => {
   try {

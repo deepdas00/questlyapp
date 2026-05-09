@@ -13,12 +13,14 @@ import TaskifyDashboard from "./pages/TaskifyDashboard";
 import DownloadPage from "./pages/DownloadPage";
 import ScrollToTop from "./components/ScrollToTop";
 import InstallPrompt from "./components/InstallPrompt";
+import NotificationPrompt from "./components/NotificationPrompt";
 
 function App() {
   return (
     <BrowserRouter>
     <ScrollToTop/>
     <InstallPrompt />
+        <NotificationPrompt />
       <Routes>
         
         <Route path="/" element={<LandingPage />} />
