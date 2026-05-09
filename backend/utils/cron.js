@@ -1,7 +1,7 @@
 import cron from "node-cron";
-import webpush from "./push.js";
+import webpush from "../push.js";
 import PushSubscription from "../models/pushSubscription.model.js";
-import { quotes } from "./quotes.js";
+import { quotes } from "../quotes.js";
 
 const sendNotification = async () => {
   try {
