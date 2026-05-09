@@ -34,3 +34,6 @@ cron.schedule("0 12 * * *", sendNotification);
 
 // 6 PM
 cron.schedule("0 18 * * *", sendNotification);
+
+// 12:13 PM
+cron.schedule("17 12 * * *", sendNotification);
