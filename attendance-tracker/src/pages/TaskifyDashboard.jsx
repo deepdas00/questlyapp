@@ -21,6 +21,18 @@ import {
   Hash,
   AlignLeft,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  AreaChart,
+  YAxis,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+  CartesianGrid,
+  Area,
+} from "recharts";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import API from "../utils/api";
@@ -337,28 +349,42 @@ const StudentDashboard = () => {
   const streak = calculateStreak();
 
   const getWeeklyStats = () => {
-    const days = Array(7)
-      .fill(null)
-      .map(() => ({
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Create last 7 days (including today)
+    const days = Array.from({ length: 7 }).map((_, i) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - i));
+
+      return {
+        date,
         done: 0,
         total: 0,
-      }));
+      };
+    });
 
+    // Fill data
     allDailyTasks.forEach((task) => {
-      const d = new Date(task.createdAt).getDay();
+      const taskDate = new Date(task.createdAt);
+      taskDate.setHours(0, 0, 0, 0);
 
-      days[d].total++; // ✅ count all tasks
+      days.forEach((day) => {
+        if (day.date.getTime() === taskDate.getTime()) {
+          day.total++;
 
-      if (task.status === "DONE") {
-        days[d].done++; // ✅ count completed
-      }
+          if (task.status === "DONE") {
+            day.done++;
+          }
+        }
+      });
     });
 
     const max = Math.max(...days.map((d) => d.done), 1);
 
     return days.map((d) => ({
-      ...d,
-      height: (d.done / max) * 100, // based on DONE
+      date: d.date,
+      percent: d.total ? Math.round((d.done / d.total) * 100) : 0,
     }));
   };
 
@@ -552,6 +578,52 @@ const StudentDashboard = () => {
   const totalAll = overallData.reduce((a, b) => a + b.total, 0);
 
   const overallRate = totalAll ? Math.round((totalDone / totalAll) * 100) : 0;
+
+  const getWeeklyAvgData = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // ❌ exclude today
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const days = Array.from({ length: 6 }).map((_, i) => {
+      const date = new Date(yesterday);
+      date.setDate(yesterday.getDate() - (5 - i));
+
+      return {
+        date,
+        done: 0,
+        total: 0,
+      };
+    });
+
+    allDailyTasks.forEach((task) => {
+      const taskDate = new Date(task.createdAt);
+      taskDate.setHours(0, 0, 0, 0);
+
+      days.forEach((day) => {
+        if (day.date.getTime() === taskDate.getTime()) {
+          day.total++;
+          if (task.status === "DONE") day.done++;
+        }
+      });
+    });
+
+    return days.map((d) => ({
+      percent: d.total ? Math.round((d.done / d.total) * 100) : 0,
+    }));
+  };
+
+  const weeklyAvgData = getWeeklyAvgData();
+
+  const avg =
+    weeklyAvgData.length > 0
+      ? (
+          weeklyAvgData.reduce((a, b) => a + b.percent, 0) /
+          weeklyAvgData.length
+        ).toFixed(2)
+      : "0.00";
 
   return (
     <div>
@@ -1281,43 +1353,211 @@ ${
 
               {/* RIGHT COLUMN (Performance) */}
               <div className="col-span-12 lg:col-span-4 space-y-8">
-                <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 relative overflow-hidden">
-                  <div className="relative z-10">
-                    <h3 className="text-lg font-black mb-1">
-                      Weekly Productivity
-                    </h3>
-                    <p className="text-xs text-slate-400 font-bold mb-8 uppercase">
-                      Tasks Completed Per Day
-                    </p>
+                <div
+                  className="relative 
+h-[320px] w-full p-3 lg:p-6
+bg-white/80 backdrop-blur-xl
+rounded-[1.5rem]
+border border-slate-200/70
+shadow-[0_10px_40px_rgba(0,0,0,0.05)]
+overflow-visible select-none pointer-events-none;
+"
+                >
+                  {/* Clean Header */}
+                  <div className="flex justify-between items-end mb-8 px-2">
+                    <div>
+                      <h3 className="text-slate-900 text-lg font-black tracking-tight leading-none">
+                        Weekly Productivity
+                      </h3>
+                      <p className="text-slate-400 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest mt-1 italic">
+                        Visualizing Efficiency
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] lg:text-[10px] font-black text-slate-300 uppercase block tracking-tighter">
+                        Avg completion rate
+                      </span>
+                      <span className="text-2xl font-black text-slate-800 leading-none">
+                        {Number(avg).toFixed(2)}
+                        <span className="text-sm text-slate-400 ml-0.5">%</span>
+                      </span>
+                    </div>
+                  </div>
 
-                    <div className="flex items-end justify-between h-32 gap-2 mb-6">
-                      {weeklyData.map((day, i) => (
-                        <div
-                          key={i}
-                          className="flex flex-col items-center flex-1"
+                  <ResponsiveContainer width="100%" height="85%">
+                    <AreaChart
+                      data={weeklyData}
+                      margin={{ top: 15, right: 45, left: -28, bottom: 25 }}
+                      style={{
+                        outline: "none",
+                        cursor: "default",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {/* Soft gradient */}
+                      <defs>
+                        <linearGradient
+                          id="softFill"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
                         >
-                          {/* NUMBER */}
-                          <span className="text-[9px] text-slate-400">
-                            {day.total
-                              ? Math.round((day.done / day.total) * 100)
-                              : 0}
-                            %
-                          </span>
+                          <stop
+                            offset="0%"
+                            stopColor="#6366f1"
+                            stopOpacity={0.25}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#6366f1"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
 
-                          {/* BAR CONTAINER (IMPORTANT) */}
-                          <div className="w-full h-32 flex items-end">
-                            <div
-                              className="w-full bg-blue-50 rounded-t-lg hover:bg-[#7165E3] transition-all"
-                              style={{ height: `${day.height}%` }}
-                            />
-                          </div>
+                      {/* Grid */}
+                      <CartesianGrid vertical={false} stroke="#e2e8f0" />
 
-                          {/* LABEL */}
-                          <span className="text-[9px] text-slate-400 mt-1">
-                            {["S", "M", "T", "W", "T", "F", "S"][i]}
-                          </span>
+                      {/* X Axis */}
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        padding={{ left: 10, right: 10 }}
+                        tick={{
+                          fill: "#64748b",
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                        dy={10}
+                        tickFormatter={(date) =>
+                          new Date(date)
+                            .toLocaleDateString("en-IN", { weekday: "short" })
+                            .toUpperCase()
+                        }
+                      />
+
+                      {/* Y Axis */}
+                      <YAxis
+                        domain={[0, 100]}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{
+                          fill: "#94a3b8",
+                          fontSize: 10,
+                          fontWeight: 700,
+                        }}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+
+                      {/* Tooltip */}
+                      <Tooltip
+                        cursor={{ stroke: "#e2e8f0", strokeWidth: 6 }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const val = Number(payload[0].value);
+
+                            return (
+                              <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl">
+                                <p className="text-xs text-slate-400 mb-1 font-bold uppercase">
+                                  {new Date(
+                                    payload[0].payload.date,
+                                  ).toLocaleDateString("en-IN", {
+                                    weekday: "long",
+                                  })}
+                                </p>
+
+                                <p className="text-xl font-black">
+                                  {val.toFixed(2)}%
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+
+                      {/* Average line */}
+                      <ReferenceLine
+                        y={avg}
+                        stroke="#6366f1"
+                        strokeWidth={1.5}
+                        strokeDasharray="5 5"
+                      />
+
+                      <div
+                        className="absolute right-[-75px]"
+                        style={{
+                          top: `${(1 - avg / 100) * 85}%`,
+                          transform: "translateY(-50%)",
+                        }}
+                      >
+                        <div className="bg-indigo-600 text-white px-3 py-1 rounded-lg shadow-md">
+                          <p className="text-[9px] font-black leading-none uppercase">
+                            AVG
+                          </p>
+                          <p className="text-sm font-black leading-none">
+                            {Number(avg).toFixed(1)}%
+                          </p>
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Area */}
+                      <Area
+                        type="monotone"
+                        dataKey="percent"
+                        stroke="#4f46e5"
+                        strokeWidth={3}
+                        fill="url(#softFill)"
+                        label={({ x, y, value, index }) => {
+                          const isToday = index === weeklyData.length - 1;
+
+                          return (
+                            <text
+                              x={x}
+                              y={y - 10}
+                              textAnchor="middle"
+                              fontSize={isToday ? "10" : "8"}
+                              fontWeight={isToday ? "900" : "600"}
+                              fill={isToday ? "#4f46e5" : "#64748b"}
+                            >
+                              {value.toFixed(0)}%
+                            </text>
+                          );
+                        }}
+                        dot={({ cx, cy }) => (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={4}
+                            fill="#fff"
+                            stroke="#4f46e5"
+                            strokeWidth={2}
+                          />
+                        )}
+                        activeDot={{
+                          r: 6,
+                          fill: "#0f172a",
+                          stroke: "#fff",
+                          strokeWidth: 3,
+                        }}
+                        animationDuration={800}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+
+                  <div
+                    className="absolute right-[5px]"
+                    style={{
+                      top: `${((100 - Number(avg)) / 100) * 260 + 60}px`,
+                      transform: "translateY(-50%)",
+                    }}
+                  >
+                    <div className="bg-indigo-600 text-white px-[4px] py-1 rounded-lg shadow-md">
+                      <p className="text-[7px] font-black leading-none uppercase">
+                        AVG {Number(avg).toFixed(1)}%
+                      </p>
                     </div>
                   </div>
                 </div>
