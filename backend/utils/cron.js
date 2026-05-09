@@ -8,6 +8,9 @@ const sendNotification = async () => {
     const randomQuote =
       quotes[Math.floor(Math.random() * quotes.length)];
 
+
+      console.log(randomQuote);
+      
     const users = await PushSubscription.find();
 
     for (const user of users) {
@@ -36,4 +39,4 @@ cron.schedule("0 12 * * *", sendNotification);
 cron.schedule("0 18 * * *", sendNotification);
 
 // 12:13 PM
-cron.schedule("47 12 * * *", sendNotification);
+cron.schedule("52 12 * * *", sendNotification);
