@@ -108,11 +108,15 @@ useEffect(() => {
 
 
 
-const connectDrive = () => {
-  window.open(
-    `${import.meta.env.VITE_API_URL}/drive/connect`,
-    "_self"
-  );
+const connectDrive = async () => {
+  try {
+    const res = await API.get("/drive/connect");
+
+    window.location.href = res.data.url; // redirect manually
+
+  } catch (err) {
+    console.error(err);
+  }
 };
 
 

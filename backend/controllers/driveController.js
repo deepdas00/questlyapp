@@ -33,7 +33,7 @@ export const connectDrive = (req, res) => {
     scope: ["https://www.googleapis.com/auth/drive.file"],
   });
 
-  res.redirect(url);
+  res.json({ url });
 };
 
 // 🔁 CALLBACK
