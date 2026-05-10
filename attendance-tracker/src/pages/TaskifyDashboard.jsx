@@ -1,4 +1,4 @@
-import React, { useState,useMemo, useEffect, useContext } from "react";
+import React, { useState, useMemo, useEffect, useContext } from "react";
 import {
   Plus,
   Calendar,
@@ -39,15 +39,12 @@ import API from "../utils/api";
 import { AuthContext } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 
-
 const StudentDashboard = () => {
   const { tasks, setTasks } = useApp();
 
   // 🔥 AFTER states
-const allDailyTasks = tasks?.filter(t => t.type === "DAILY") || [];
-const assignments = tasks?.filter(t => t.type === "ASSIGNMENT") || [];
-
-
+  const allDailyTasks = tasks?.filter((t) => t.type === "DAILY") || [];
+  const assignments = tasks?.filter((t) => t.type === "ASSIGNMENT") || [];
 
   const [adding, setAdding] = useState(false);
   const { user } = useContext(AuthContext);
@@ -74,10 +71,6 @@ const assignments = tasks?.filter(t => t.type === "ASSIGNMENT") || [];
   // const [dailyTasks, setDailyTasks] = useState([]);
   // const [assignments, setAssignments] = useState([]);
 
-
-
-
-
   const [expandedTasks, setExpandedTasks] = useState({});
 
   const [showAllCompleted, setShowAllCompleted] = useState(false);
@@ -90,10 +83,6 @@ const assignments = tasks?.filter(t => t.type === "ASSIGNMENT") || [];
   const paginatedActive = activeTasks.slice(0, visibleCount);
   const [addingQuest, setAddingQuest] = useState(false);
 
-
-
-
-
   const toggleReadMore = (id) => {
     setExpandedTasks((prev) => ({
       ...prev,
@@ -101,40 +90,34 @@ const assignments = tasks?.filter(t => t.type === "ASSIGNMENT") || [];
     }));
   };
 
-useEffect(() => {
-  fetchTasks();
-}, []);
-
-
-
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const dailyTasks = useMemo(() => {
-  if (!tasks) return [];
+    if (!tasks) return [];
 
-  const today = new Date();
-  today.setHours(0,0,0,0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
 
-  const weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 7);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
 
-  return allDailyTasks.filter(task => {
-    const taskDate = new Date(task.createdAt);
-    taskDate.setHours(0,0,0,0);
+    return allDailyTasks.filter((task) => {
+      const taskDate = new Date(task.createdAt);
+      taskDate.setHours(0, 0, 0, 0);
 
-    if (hustleView === "TODAY") return taskDate.getTime() === today.getTime();
-    if (hustleView === "YESTERDAY") return taskDate.getTime() === yesterday.getTime();
-    if (hustleView === "WEEK") return taskDate >= weekAgo;
+      if (hustleView === "TODAY") return taskDate.getTime() === today.getTime();
+      if (hustleView === "YESTERDAY")
+        return taskDate.getTime() === yesterday.getTime();
+      if (hustleView === "WEEK") return taskDate >= weekAgo;
 
-    return true;
-  });
-
-}, [tasks, hustleView]);
-
-
-
+      return true;
+    });
+  }, [tasks, hustleView]);
 
   const fetchTasks = async () => {
     try {
@@ -143,8 +126,6 @@ useEffect(() => {
       const all = res.data;
 
       setTasks(all);
-
-      
     } catch (err) {
       console.error(err);
     }
@@ -625,10 +606,6 @@ useEffect(() => {
           weeklyAvgData.length
         ).toFixed(2)
       : "0.00";
-
-
-
-      
 
   return (
     <div>
