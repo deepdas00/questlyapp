@@ -110,7 +110,7 @@ useEffect(() => {
 
   const connectDrive = () => {
   window.open(
-    `${import.meta.env.VITE_API_URL}/api/drive/connect`,
+    `${import.meta.env.VITE_API_URL}/drive/connect`,
     "_self"
   );
 };
