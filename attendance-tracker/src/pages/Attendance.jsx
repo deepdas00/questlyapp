@@ -422,6 +422,8 @@ useEffect(() => {
           <Sidebar />
         </div>
 
+        
+
         <main className="flex-1 p-2 lg:p-10 overflow-y-auto">
           <div className="max-w-[1600px] mx-auto">
             {/* TOP NAV BAR */}
