@@ -12,7 +12,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.get("/connect", authMiddleware, connectDrive);
-router.get("/callback", authMiddleware, driveCallback);
+router.get("/callback", driveCallback);
 router.post("/upload", authMiddleware, upload.single("file"), uploadFile);
 router.get("/files", authMiddleware, getFiles);
 
