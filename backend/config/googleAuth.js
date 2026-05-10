@@ -3,13 +3,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// 🔥 Decide redirect from ENV
-const redirectUri =
-  process.env.NODE_ENV === "production"
-    ? process.env.GOOGLE_REDIRECT_URI_PROD
-    : process.env.GOOGLE_REDIRECT_URI_DEV;
+const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-// ❌ safety check
+// 🔴 DEBUG (keep temporarily)
+console.log("Redirect URI:", redirectUri);
+
 if (!redirectUri) {
   throw new Error("Redirect URI not defined in .env");
 }
