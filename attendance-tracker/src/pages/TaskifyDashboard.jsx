@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState,useMemo, useEffect, useContext } from "react";
 import {
   Plus,
   Calendar,
@@ -37,8 +37,18 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import API from "../utils/api";
 import { AuthContext } from "../context/AuthContext";
+import { useApp } from "../context/AppContext";
+
 
 const StudentDashboard = () => {
+  const { tasks, setTasks } = useApp();
+
+  // 🔥 AFTER states
+const allDailyTasks = tasks?.filter(t => t.type === "DAILY") || [];
+const assignments = tasks?.filter(t => t.type === "ASSIGNMENT") || [];
+
+
+
   const [adding, setAdding] = useState(false);
   const { user } = useContext(AuthContext);
   const [hustleView, setHustleView] = useState("TODAY");
@@ -60,9 +70,13 @@ const StudentDashboard = () => {
   const [tempTags, setTempTags] = useState([]);
 
   // --- DYNAMIC STATE ---
-  const [allDailyTasks, setAllDailyTasks] = useState([]);
-  const [dailyTasks, setDailyTasks] = useState([]);
-  const [assignments, setAssignments] = useState([]);
+  // const [allDailyTasks, setAllDailyTasks] = useState([]);
+  // const [dailyTasks, setDailyTasks] = useState([]);
+  // const [assignments, setAssignments] = useState([]);
+
+
+
+
 
   const [expandedTasks, setExpandedTasks] = useState({});
 
@@ -76,6 +90,10 @@ const StudentDashboard = () => {
   const paginatedActive = activeTasks.slice(0, visibleCount);
   const [addingQuest, setAddingQuest] = useState(false);
 
+
+
+
+
   const toggleReadMore = (id) => {
     setExpandedTasks((prev) => ({
       ...prev,
@@ -83,9 +101,40 @@ const StudentDashboard = () => {
     }));
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, [hustleView]);
+useEffect(() => {
+  fetchTasks();
+}, []);
+
+
+
+
+  const dailyTasks = useMemo(() => {
+  if (!tasks) return [];
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+
+  return allDailyTasks.filter(task => {
+    const taskDate = new Date(task.createdAt);
+    taskDate.setHours(0,0,0,0);
+
+    if (hustleView === "TODAY") return taskDate.getTime() === today.getTime();
+    if (hustleView === "YESTERDAY") return taskDate.getTime() === yesterday.getTime();
+    if (hustleView === "WEEK") return taskDate >= weekAgo;
+
+    return true;
+  });
+
+}, [tasks, hustleView]);
+
+
+
 
   const fetchTasks = async () => {
     try {
@@ -93,57 +142,9 @@ const StudentDashboard = () => {
 
       const all = res.data;
 
-      // Split by type
-      const dailyList = all.filter((t) => t.type === "DAILY");
-      setAllDailyTasks(dailyList);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      setTasks(all);
 
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-
-      const weekAgo = new Date(today);
-      weekAgo.setDate(today.getDate() - 7);
-
-      const filteredDaily = dailyList.filter((task) => {
-        const taskDate = new Date(task.createdAt);
-        taskDate.setHours(0, 0, 0, 0);
-
-        if (hustleView === "TODAY") {
-          return taskDate.getTime() === today.getTime();
-        }
-
-        if (hustleView === "YESTERDAY") {
-          return taskDate.getTime() === yesterday.getTime();
-        }
-
-        if (hustleView === "WEEK") {
-          return taskDate >= weekAgo;
-        }
-
-        return true;
-      });
-
-      setDailyTasks(filteredDaily);
-
-      const assignmentList = all
-        .filter((t) => t.type === "ASSIGNMENT")
-        .sort((a, b) => {
-          const aDate = a.due_date ? new Date(a.due_date) : null;
-          const bDate = b.due_date ? new Date(b.due_date) : null;
-
-          // ✅ If both have due dates → sort ascending (earliest first)
-          if (aDate && bDate) return aDate - bDate;
-
-          // ✅ If only one has date → that one comes first
-          if (aDate) return -1;
-          if (bDate) return 1;
-
-          // ✅ If none have date → fallback to latest created
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        });
-
-      setAssignments(assignmentList);
+      
     } catch (err) {
       console.error(err);
     }
@@ -624,6 +625,10 @@ const StudentDashboard = () => {
           weeklyAvgData.length
         ).toFixed(2)
       : "0.00";
+
+
+
+      
 
   return (
     <div>

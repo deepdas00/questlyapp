@@ -28,17 +28,30 @@ import Sidebar from "../components/Sidebar";
 import { useEffect } from "react";
 import API from "../utils/api";
 import Navbar from "../components/Navbar";
+import { useApp } from "../context/AppContext";
 
 const Attendance = () => {
-  // const [target] = useState(75);
-  // const [daysLeft] = useState(30);
-  // const [classesPerDay] = useState(5);
-  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [predictDays, setPredictDays] = useState(5);
   const [loadingType, setLoadingType] = useState(null);
 
-  const [semester, setSemester] = useState(null);
+  const {
+  subjects,
+  setSubjects,
+  attendance,
+  setAttendance,
+  routine,
+  setRoutine,
+  semester,
+  setSemester,
+} = useApp();
+
+
+const safeAttendance = attendance || [];
+const safeSubjects = subjects || [];
+const safeRoutine = routine || [];
+
+
 
   const fetchSemester = async () => {
     try {
@@ -49,7 +62,7 @@ const Attendance = () => {
     }
   };
 
-  const [routine, setRoutine] = useState([]);
+
   const fetchRoutine = async () => {
     try {
       const res = await API.get("/routine");
@@ -67,8 +80,7 @@ const Attendance = () => {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const [subjects, setSubjects] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
 
@@ -84,18 +96,18 @@ const Attendance = () => {
   const fetchAttendance = async () => {
     try {
       const res = await API.get("/attendance");
-      setAttendanceData(res.data);
+      setAttendance(res.data); 
     } catch (err) {
       console.error(err);
     }
   };
 
-  useEffect(() => {
-    fetchSubjects();
-    fetchAttendance();
-    fetchRoutine();
-    fetchSemester();
-  }, []);
+useEffect(() => {
+  fetchSubjects();
+  fetchAttendance();
+  fetchRoutine();
+  fetchSemester();
+}, []);
 
   const target = semester?.target_percentage ?? 75;
 
@@ -133,7 +145,7 @@ const Attendance = () => {
 
   const selectedDayName = getSelectedDayName();
 
-  const todaysRoutine = routine.filter(
+  const todaysRoutine = safeRoutine.filter(
     (r) =>
       r.day_of_week?.toUpperCase().trim() ===
       selectedDayName.toUpperCase().trim(),
@@ -208,7 +220,7 @@ const Attendance = () => {
   };
 
   const getDayStatus = (day) => {
-    const found = attendanceData.find((a) => {
+    const found = safeAttendance.find((a) => {
       const d = new Date(a.date);
       return (
         d.getDate() === day &&
@@ -266,7 +278,7 @@ const Attendance = () => {
     const end = new Date(selectedDate);
     end.setHours(23, 59, 59, 999);
 
-    return attendanceData.find((a) => {
+    return safeAttendance.find((a) => {
       const d = new Date(a.date);
       return d >= start && d <= end;
     });
@@ -294,9 +306,9 @@ const Attendance = () => {
     };
   };
 
-  const totalAttended = subjects.reduce((s, a) => s + a.attended_count, 0);
+  const totalAttended = safeSubjects.reduce((s, a) => s + a.attended_count, 0);
 
-  const totalConducted = subjects.reduce((s, a) => s + a.conducted_count, 0);
+  const totalConducted = safeSubjects.reduce((s, a) => s + a.conducted_count, 0);
 
   const overall = calculateStats(totalAttended, totalConducted);
 
@@ -373,7 +385,7 @@ const Attendance = () => {
     let total = 0;
     let present = 0;
 
-    attendanceData.forEach((day) => {
+    safeAttendance.forEach((day) => {
       const d = new Date(day.date);
 
       // ✅ Only current calendar month
@@ -548,7 +560,7 @@ const Attendance = () => {
                 },
                 {
                   label: "AT RISK",
-                  val: subjects.filter(
+                  val: safeSubjects.filter(
                     (s) =>
                       (s.attended_count / s.conducted_count) * 100 < target,
                   ).length,
@@ -1265,7 +1277,7 @@ const Attendance = () => {
 
                   {/* Cards Grid: Stays 1 col on mobile, 2 cols on lg (Desktop) */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
-                    {subjects.map((sub, idx) => {
+                    {safeSubjects.map((sub, idx) => {
                       const attended = sub.attended_count || 0;
                       const conducted = sub.conducted_count || 0;
 
@@ -1391,7 +1403,7 @@ const Attendance = () => {
 
                   {/* Cards Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
-                    {subjects.map((sub, idx) => {
+                    {safeSubjects.map((sub, idx) => {
                       const attended = sub.attended_count || 0;
                       const conducted = sub.conducted_count || 0;
                       const percentage =

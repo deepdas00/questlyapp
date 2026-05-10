@@ -20,7 +20,7 @@ function App() {
     <BrowserRouter>
     <ScrollToTop/>
     <InstallPrompt />
-        <NotificationPrompt />
+        {/* <NotificationPrompt /> */}
       <Routes>
         
         <Route path="/" element={<LandingPage />} />

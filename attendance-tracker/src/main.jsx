@@ -4,8 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext";
+import { AppProvider } from "./context/AppContext";
 import { Toaster } from "react-hot-toast";
-
 
 // 🔥 ADD THIS HERE
 if ("serviceWorker" in navigator) {
@@ -17,13 +17,13 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-
-
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
-      <App />
-      <Toaster position="top-right" />
+      <AppProvider>
+        <App />
+        <Toaster position="top-right" />
+      </AppProvider>
     </AuthProvider>
   </StrictMode>,
 );
