@@ -5,6 +5,8 @@ dotenv.config();
 
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
+console.log("🔥 Redirect URI:", redirectUri); // DEBUG
+
 // 🔴 DEBUG (keep temporarily)
 console.log("Redirect URI:", redirectUri);
 

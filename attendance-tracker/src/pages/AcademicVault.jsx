@@ -57,7 +57,7 @@ const uploadFile = async (e) => {
     formData.append("file", file);
     formData.append("subject", selectedSubject);
 
-    const res = await API.post("/api/drive/upload", formData, {
+    const res = await API.post("/drive/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -76,7 +76,7 @@ const uploadFile = async (e) => {
 
 const fetchFiles = async () => {
   try {
-    const res = await API.get("/api/drive/files");
+    const res = await API.get("/drive/files");
     setVaultItems(res.data.files);
   } catch (err) {
     console.error(err);
@@ -108,11 +108,11 @@ useEffect(() => {
 
 
 
-  const connectDrive = () => {
+const connectDrive = () => {
   window.open(
-  `${import.meta.env.VITE_API_URL}/drive/connect`,
-  "_self"
-);
+    `${import.meta.env.VITE_API_URL}/drive/connect`,
+    "_self"
+  );
 };
 
 

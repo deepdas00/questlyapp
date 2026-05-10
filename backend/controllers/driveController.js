@@ -1,12 +1,35 @@
 import { google } from "googleapis";
 import oauth2Client from "../config/googleAuth.js";
 import GoogleDrive from "../models/GoogleDrive.js";
+import jwt from "jsonwebtoken";
 
-// 🔗 CONNECT GOOGLE
+
+console.log("🚀 driveController loaded");
+
+
+
+
 export const connectDrive = (req, res) => {
+  const token = req.query.token;
+
+  if (!token) {
+    return res.status(401).send("No token provided");
+  }
+
+  let user;
+
+  try {
+    user = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).send("Invalid token");
+  }
+
+  // 🔥 attach user to session-like memory (temporary)
+  req.app.locals.oauthUser = user;
+
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent", // 🔥 ensures refresh token
+    prompt: "consent",
     scope: ["https://www.googleapis.com/auth/drive.file"],
   });
 
@@ -16,37 +39,41 @@ export const connectDrive = (req, res) => {
 // 🔁 CALLBACK
 export const driveCallback = async (req, res) => {
   try {
-    console.log("🔥 CALLBACK HIT");
-    console.log("Query:", req.query);
-
     const { code } = req.query;
 
-    if (!code) {
-      console.log("❌ No code received");
-      return res.status(400).send("No code from Google");
-    }
-
     const { tokens } = await oauth2Client.getToken(code);
-    console.log("✅ Tokens received");
-
     oauth2Client.setCredentials(tokens);
+
+    const user = req.app.locals.oauthUser;
+
+    if (!user) {
+      return res.status(401).send("User lost during OAuth");
+    }
 
     const drive = google.drive({
       version: "v3",
       auth: oauth2Client,
     });
 
-    console.log("👤 User:", req.user);
+    // 🔥 Create folder
+    const folder = await drive.files.create({
+      requestBody: {
+        name: "Questly Vault",
+        mimeType: "application/vnd.google-apps.folder",
+      },
+    });
 
-    if (!req.user) {
-      return res.status(401).send("User not authenticated");
-    }
+    await GoogleDrive.create({
+      user_id: user.id,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expiry_date: tokens.expiry_date,
+      folder_id: folder.data.id,
+    });
 
-    // rest of your logic...
-
-    res.send("Drive Connected ✅");
+    res.redirect(process.env.CLIENT_URLS); // back to frontend
   } catch (err) {
-    console.error("❌ CALLBACK ERROR:", err.message);
+    console.error(err);
     res.status(500).send("Drive connection failed");
   }
 };
