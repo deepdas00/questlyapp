@@ -318,8 +318,13 @@ const AeroWhiteDashboard = () => {
 
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-900 font-sans selection:bg-blue-500/30 overflow-x-hidden">
-      <Navbar />
+  <div>
+
+    <Navbar/>
+
+
+      <div className="min-h-screen bg-[#F1F5F9] text-slate-900 font-sans selection:bg-blue-500/30 overflow-x-hidden">
+      
 
       <div className="flex">
         <div className="hidden lg:block fixed h-full z-50">
@@ -688,6 +693,7 @@ const AeroWhiteDashboard = () => {
         </main>
       </div>
     </div>
+  </div>
   );
 };
 

@@ -1,181 +1,287 @@
-import React, { useState } from 'react';
-import { 
-  Search, BookOpen, FileText, Play, Download, 
-  ExternalLink, Filter, FolderOpen, ChevronLeft
-} from 'lucide-react';
-import Sidebar from '../components/Sidebar';
+import React from "react";
+import { useState, useEffect } from "react";
+import {
+  Trophy,
+  Target,
+  Zap,
+  Clock,
+  BookOpen,
+  Download,
+  Play,
+  TrendingUp,
+  MoreVertical,
+  LayoutGrid,
+  FileText,
+  BarChart3,
+} from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 
-const AcademicVault = () => {
-  const [selectedSubject, setSelectedSubject] = useState('Data Structures & Algo');
+const QuestlyAcademicWhite = () => {
+
+  const [dirHandle, setDirHandle] = useState(null);
+const [vaultItems, setVaultItems] = useState([]);
+
+const pickFolder = async () => {
+  if (!window.showDirectoryPicker) {
+    alert("Your browser does not support folder access. Use Chrome.");
+    return;
+  }
+
+  try {
+    const handle = await window.showDirectoryPicker();
+    setDirHandle(handle);
+    console.log("Folder selected:", handle.name);
+  } catch (err) {
+    console.log("User cancelled");
+  }
+};
+
+
+
+const uploadFile = async (e) => {
+  const file = e.target.files[0];
+  if (!file || !dirHandle) return;
+
+  try {
+    const fileHandle = await dirHandle.getFileHandle(file.name, {
+      create: true,
+    });
+
+    const writable = await fileHandle.createWritable();
+    await writable.write(file);
+    await writable.close();
+
+    // Update UI
+    setVaultItems((prev) => [
+      ...prev,
+      {
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        type: file.type || "PDF",
+      },
+    ]);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
 
   const subjects = [
-    'Data Structures & Algo', 'Database Management', 'Operating Systems', 
-    'Computer Networks', 'Discrete Mathematics', 'Software Engineering'
+    { name: "Data Structures", attendance: 92, grade: "A", status: "On Track", color: "bg-blue-500" },
+    { name: "Database Systems", attendance: 74, grade: "B+", status: "Low Attendance", color: "bg-orange-500" },
+    { name: "Operating Systems", attendance: 85, grade: "A-", status: "On Track", color: "bg-indigo-500" },
+    { name: "Network Security", attendance: 60, grade: "C", status: "Critical", color: "bg-red-500" },
   ];
 
-  const resources = [
-    { id: 1, title: 'Unit 1: Linked Lists & Stacks', type: 'Notes', format: 'PDF', size: '2.4 MB', date: '2 days ago' },
-    { id: 2, title: 'Unit 2: Trees and Graphs', type: 'Notes', format: 'PDF', size: '5.1 MB', date: '5 days ago' },
-    { id: 3, title: 'Mid-Sem Question Paper 2025', type: 'Paper', format: 'PDF', size: '1.2 MB', date: '1 month ago' },
-    { id: 4, title: 'End-Sem Pattern Analysis', type: 'Paper', format: 'DOCX', size: '800 KB', date: '2 weeks ago' },
+  const deadlines = [
+    { title: "Compiler Design Lab", sub: "CS-402", due: "Tomorrow", urgency: "High" },
+    { title: "Research Paper Draft", sub: "ENG-101", due: "In 3 days", urgency: "Mid" },
   ];
+
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
-      {/* 1. PERMANENT SIDEBAR */}
-      <Sidebar />
+    <div className="min-h-screen bg-[#f0f4f8]">
+      <Navbar />
+      <div className="flex">
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
 
-      {/* 2. MAIN SCROLLABLE CONTENT */}
-      <main className="flex-1 h-screen overflow-y-auto p-6 lg:p-10">
-        
-        {/* Top Navigation & Search Bar */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center shadow-sm">
-              <BookOpen size={24} className="text-blue-600" />
+        <main className="flex-1 p-4 lg:p-10 max-w-[1600px] mx-auto">
+          {/* --- HEADER --- */}
+          <div className="mb-10">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">Academic Command Center</h1>
+            <p className="text-slate-500 text-sm font-medium">All-in-one Semester VI Tracking</p>
+          </div>
+
+          {/* --- STATS GRID (Always Visible) --- */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <StatCard label="Current CGPA" value="8.92" icon={<Trophy className="text-yellow-500" />} trend="+0.12" />
+            <StatCard label="Attendance Avg" value="78%" icon={<Zap className="text-blue-500" />} trend="-2%" alert />
+            <StatCard label="Credits Earned" value="124" icon={<BookOpen className="text-indigo-500" />} />
+            <StatCard label="Target GPA" value="9.50" icon={<Target className="text-emerald-500" />} isTarget />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* --- LEFT COLUMN: OVERVIEW & ANALYTICS --- */}
+            <div className="lg:col-span-8 space-y-8">
+              
+              {/* SUBJECT MATRIX (Overview) */}
+              <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-black uppercase tracking-tight">Subject Matrix</h3>
+                  <BarChart3 className="text-slate-400" size={20} />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                        <th className="pb-4">Subject</th>
+                        <th className="pb-4 text-center">Attendance</th>
+                        <th className="pb-4 text-center">Grade</th>
+                        <th className="pb-4 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {subjects.map((sub, i) => (
+                        <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                          <td className="py-5">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-8 rounded-full ${sub.color}`}></div>
+                              <span className="font-bold text-sm text-slate-700">{sub.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-5">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-sm font-black">{sub.attendance}%</span>
+                              <div className="w-20 bg-slate-100 h-1 rounded-full overflow-hidden">
+                                <div className={`${sub.color} h-full`} style={{ width: `${sub.attendance}%` }}></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-5 text-center font-black text-slate-900">{sub.grade}</td>
+                          <td className="py-5 text-right">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                              sub.status === "Critical" ? "bg-red-50 text-red-600" : 
+                              sub.status === "On Track" ? "bg-emerald-50 text-emerald-600" : "bg-orange-50 text-orange-600"
+                            }`}>
+                              {sub.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* QUICK ANALYTICS & VAULT ROW */}
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm">
+
+  <div className="flex justify-between items-center mb-6">
+    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+      <Download size={14} /> Academic Vault
+    </h3>
+
+    <button
+      onClick={pickFolder}
+      className="text-xs bg-slate-900 text-white px-4 py-2 rounded-xl"
+    >
+      Select Folder
+    </button>
+  </div>
+
+  {/* Upload */}
+  <input
+    type="file"
+    onChange={uploadFile}
+    className="mb-4 text-xs"
+  />
+
+  {/* Files */}
+  <div className="space-y-4">
+    {vaultItems.length === 0 ? (
+      <p className="text-xs text-slate-400">
+        No files yet
+      </p>
+    ) : (
+      vaultItems.map((item, i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl border"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <FileText size={16} />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tighter uppercase italic">Academic Vault</h1>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">GenDelta Central Repository</p>
+              <p className="text-xs font-bold">{item.name}</p>
+              <p className="text-[10px] text-slate-400">
+                {item.size} • {item.type}
+              </p>
             </div>
           </div>
-
-          <div className="flex w-full md:w-auto gap-3">
-            <div className="relative flex-1 md:w-80">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search notes, papers, or units..." 
-                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
-              />
-            </div>
-            <button className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-blue-600 shadow-sm transition-all">
-              <Filter size={20} />
-            </button>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* LEFT: SUBJECT NAVIGATION & STORAGE */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-[2.5rem] p-6 shadow-sm">
-              <h3 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Course Modules</h3>
-              <div className="space-y-2">
-                {subjects.map((sub) => (
-                  <button
-                    key={sub}
-                    onClick={() => setSelectedSubject(sub)}
-                    className={`w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-between group ${
-                      selectedSubject === sub 
-                      ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' 
-                      : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <span className="truncate">{sub}</span>
-                    <ChevronLeft size={16} className={`transition-transform ${selectedSubject === sub ? 'rotate-180 text-blue-400' : 'opacity-0'}`} />
-                  </button>
-                ))}
-              </div>
+          <Download size={14} className="text-slate-400" />
+        </div>
+      ))
+    )}
+  </div>
+</div>
             </div>
 
-            {/* Premium Storage Card */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-100">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Vault Capacity</p>
-              <h4 className="text-2xl font-black mb-6">1.2 GB <span className="text-sm font-medium opacity-60">/ 2.0 GB</span></h4>
-              <div className="w-full bg-white/20 h-2 rounded-full mb-4">
-                <div className="bg-white h-full w-[65%] rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
-              </div>
-              <button className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
-                Upgrade Storage
-              </button>
-            </div>
-          </div>
-
-          {/* RIGHT: CONTENT AREA */}
-          <div className="lg:col-span-8 space-y-8">
-            
-            {/* YouTube Featured Section */}
-            <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group border border-slate-800">
-              <div className="relative z-10 flex flex-col xl:flex-row justify-between items-center gap-8">
-                <div className="flex-1 space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 rounded-full border border-red-500/20 text-[9px] font-black uppercase tracking-widest">
-                    <Play size={12} fill="currentColor" /> Active Playlist
+            {/* --- RIGHT COLUMN: PREDICTOR & DEADLINES --- */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              {/* GPA PREDICTOR (Analytics) */}
+              <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-[2.5rem] p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl"><TrendingUp size={18} /></div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-indigo-900">GPA Predictor</h3>
+                </div>
+                <p className="text-xs text-indigo-800/60 font-medium mb-6">
+                  To reach your <span className="font-bold">9.50 GPA</span> goal, you need <span className="text-indigo-600 font-black">9.2</span> in remaining internals.
+                </p>
+                <div className="space-y-4">
+                  <div className="h-2 bg-indigo-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-600 w-[88%]"></div>
                   </div>
-                  <h2 className="text-3xl font-black leading-none">{selectedSubject} Essentials</h2>
-                  <p className="text-slate-400 text-sm leading-relaxed max-w-sm">Hand-picked video lectures and crash courses to clear your concepts before the finals.</p>
-                  <button className="flex items-center gap-3 text-white font-black text-xs uppercase tracking-widest hover:text-blue-400 transition-colors">
-                    Watch Now <ExternalLink size={14} />
-                  </button>
-                </div>
-                <div className="w-full xl:w-64 aspect-video bg-slate-800 rounded-[2rem] border border-slate-700 flex items-center justify-center relative group-hover:scale-105 transition-transform duration-500 overflow-hidden shadow-2xl">
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                   <Play size={40} className="text-white relative z-10 opacity-50 group-hover:opacity-100 transition-opacity" fill="white" />
+                  <div className="flex justify-between text-[10px] font-black uppercase text-indigo-400">
+                    <span>Current: 8.92</span>
+                    <span>Goal: 9.50</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Document Grid */}
-            <div>
-              <div className="flex justify-between items-end mb-6 px-2">
-                <div>
-                  <h3 className="font-black text-2xl text-slate-800 tracking-tight tracking-tighter">Resources</h3>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Found {resources.length} files in this module</p>
+              {/* DEADLINES */}
+              <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
+                  <Clock size={14} /> Upcoming Deadlines
+                </h3>
+                <div className="space-y-6">
+                  {deadlines.map((d, i) => (
+                    <div key={i} className="flex justify-between items-start">
+                      <div className="flex gap-4">
+                        <div className={`mt-1.5 w-2 h-2 rounded-full ${d.urgency === "High" ? "bg-red-500" : "bg-blue-500"}`}></div>
+                        <div>
+                          <p className="text-sm font-black text-slate-800 leading-none">{d.title}</p>
+                          <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">{d.sub}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-900 whitespace-nowrap">{d.due}</span>
+                    </div>
+                  ))}
                 </div>
-                <button className="text-[10px] font-black uppercase tracking-widest bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-                  + Add File
+                <button className="w-full mt-8 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">
+                  Sync Calendar
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {resources.map((file) => (
-                  <div key={file.id} className="bg-white border border-slate-200 p-6 rounded-[2rem] hover:border-blue-500 hover:shadow-xl hover:shadow-slate-100 transition-all flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-all duration-300">
-                        <FileText size={24} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{file.title}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{file.format}</span>
-                          <span className="text-[9px] text-slate-300 font-bold">•</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{file.size}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <button className="p-3 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
-                      <Download size={20} />
-                    </button>
-                  </div>
-                ))}
-              </div>
             </div>
-
-            {/* Archives Section */}
-            <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
-                   <FolderOpen size={20} />
-                </div>
-                <h3 className="font-black text-slate-800 uppercase text-xs tracking-[0.2em]">Exam Archives</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {['2024 End-Sem', '2023 Suppli', 'Internal Assessment'].map((folder) => (
-                  <div key={folder} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-orange-200 group cursor-pointer transition-all">
-                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mb-3 shadow-sm group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                      <ExternalLink size={14} />
-                    </div>
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{folder}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
 
-export default AcademicVault;
+const StatCard = ({ label, value, icon, trend, alert, isTarget }) => (
+  <div className={`bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm ${isTarget ? "bg-emerald-50/30 border-emerald-100" : ""}`}>
+    <div className="flex justify-between items-start mb-4">
+      <div className="p-2.5 bg-slate-50 rounded-xl">{icon}</div>
+      {trend && (
+        <span className={`text-[10px] font-black ${trend.startsWith("+") ? "text-emerald-500" : "text-red-500"}`}>
+          {trend}
+        </span>
+      )}
+    </div>
+    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</p>
+    <div className="flex items-end gap-2">
+      <h3 className="text-2xl font-black text-slate-900">{value}</h3>
+      {alert && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse mb-2"></div>}
+    </div>
+  </div>
+);
+
+export default QuestlyAcademicWhite;
