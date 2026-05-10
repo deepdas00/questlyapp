@@ -16,11 +16,18 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import API from "../utils/api"
 
 const QuestlyAcademicWhite = () => {
 
+  const [vaultItems, setVaultItems] = useState([]);
+const [selectedSubject, setSelectedSubject] = useState("DBMS");
+const [loading, setLoading] = useState(false);
+
+
+
   const [dirHandle, setDirHandle] = useState(null);
-const [vaultItems, setVaultItems] = useState([]);
+
 
 const pickFolder = async () => {
   if (!window.showDirectoryPicker) {
@@ -41,32 +48,49 @@ const pickFolder = async () => {
 
 const uploadFile = async (e) => {
   const file = e.target.files[0];
-  if (!file || !dirHandle) return;
+  if (!file) return;
 
   try {
-    const fileHandle = await dirHandle.getFileHandle(file.name, {
-      create: true,
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("subject", selectedSubject);
+
+    const res = await API.post("/api/drive/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
 
-    const writable = await fileHandle.createWritable();
-    await writable.write(file);
-    await writable.close();
+    alert(res.data.msg);
 
-    // Update UI
-    setVaultItems((prev) => [
-      ...prev,
-      {
-        name: file.name,
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        type: file.type || "PDF",
-      },
-    ]);
+    fetchFiles(); // 🔥 refresh list
+  } catch (err) {
+    console.error(err);
+    alert("Upload failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const fetchFiles = async () => {
+  try {
+    const res = await API.get("/api/drive/files");
+    setVaultItems(res.data.files);
   } catch (err) {
     console.error(err);
   }
-
-  
 };
+
+useEffect(() => {
+  fetchFiles();
+}, []);
+
+
+
+
+
 
 
 
@@ -81,6 +105,16 @@ const uploadFile = async (e) => {
     { title: "Compiler Design Lab", sub: "CS-402", due: "Tomorrow", urgency: "High" },
     { title: "Research Paper Draft", sub: "ENG-101", due: "In 3 days", urgency: "Mid" },
   ];
+
+
+
+  const connectDrive = () => {
+  window.open(
+    `${import.meta.env.VITE_API_URL}/api/drive/connect`,
+    "_self"
+  );
+};
+
 
 
   return (
@@ -168,12 +202,23 @@ const uploadFile = async (e) => {
     </h3>
 
     <button
-      onClick={pickFolder}
-      className="text-xs bg-slate-900 text-white px-4 py-2 rounded-xl"
-    >
-      Select Folder
-    </button>
+  onClick={connectDrive}
+  className="text-xs bg-blue-600 text-white px-4 py-2 rounded-xl"
+>
+  Connect Drive
+</button>
   </div>
+
+
+  <select
+  value={selectedSubject}
+  onChange={(e) => setSelectedSubject(e.target.value)}
+  className="mb-3 text-xs border p-2 rounded"
+>
+  <option value="DBMS">DBMS</option>
+  <option value="OS">OS</option>
+  <option value="DSA">DSA</option>
+</select>
 
   {/* Upload */}
   <input
@@ -183,33 +228,44 @@ const uploadFile = async (e) => {
   />
 
   {/* Files */}
-  <div className="space-y-4">
-    {vaultItems.length === 0 ? (
-      <p className="text-xs text-slate-400">
-        No files yet
-      </p>
-    ) : (
-      vaultItems.map((item, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl border"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-              <FileText size={16} />
-            </div>
-            <div>
-              <p className="text-xs font-bold">{item.name}</p>
-              <p className="text-[10px] text-slate-400">
-                {item.size} • {item.type}
-              </p>
-            </div>
+<div className="space-y-4">
+  {vaultItems.length === 0 ? (
+    <p className="text-xs text-slate-400">
+      No files found
+    </p>
+  ) : (
+    vaultItems.map((item, i) => (
+      <div
+        key={i}
+        className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl border"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+            <FileText size={16} />
           </div>
-          <Download size={14} className="text-slate-400" />
+
+          <div>
+            <p className="text-xs font-bold">
+              {item.name}
+            </p>
+
+            <p className="text-[10px] text-slate-400">
+              {item.mimeType}
+            </p>
+          </div>
         </div>
-      ))
-    )}
-  </div>
+
+        <a
+          href={item.webViewLink}
+          target="_blank"
+          className="text-blue-500 text-xs font-bold"
+        >
+          Open
+        </a>
+      </div>
+    ))
+  )}
+</div>
 </div>
             </div>
 
