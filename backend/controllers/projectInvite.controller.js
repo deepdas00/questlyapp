@@ -2,7 +2,7 @@ import User from "../models/User.js";
 import ProjectInvite from "../models/ProjectInvite.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import { sendEmail } from "../utils/sendEmail.js";
+import sendEmail from "../utils/sendEmail.js";
 
 export const sendProjectInvite = async (req, res) => {
   try {

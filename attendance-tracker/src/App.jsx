@@ -11,6 +11,7 @@ import SmartCompass from "./pages/SmartCompass";
 import PrivateRoute from "./components/PrivateRoute";
 import TaskifyDashboard from "./pages/TaskifyDashboard";
 import DownloadPage from "./pages/DownloadPage";
+import ForgetPassword from "./pages/ForgotPassword";
 import ScrollToTop from "./components/ScrollToTop";
 import InstallPrompt from "./components/InstallPrompt";
 import NotificationPrompt from "./components/NotificationPrompt";
@@ -26,6 +27,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgetPassword />} />
         <Route path="/download" element={<DownloadPage />} />
         <Route
           path="/home"
