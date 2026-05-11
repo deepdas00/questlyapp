@@ -7,30 +7,23 @@ import jwt from "jsonwebtoken";
 console.log("🚀 driveController loaded");
 
 
-
+console.log("🔥 driveController loaded");
 
 export const connectDrive = (req, res) => {
-  const token = req.query.token;
+  const user = req.user; // 🔥 from middleware
 
-  if (!token) {
-    return res.status(401).send("No token provided");
-  }
-
-  let user;
-
-  try {
-    user = jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
-    return res.status(401).send("Invalid token");
-  }
-
-  // 🔥 attach user to session-like memory (temporary)
-  req.app.locals.oauthUser = user;
+  // encode user in state (IMPORTANT)
+  const state = jwt.sign(
+    { id: user.id },
+    process.env.JWT_SECRET,
+    { expiresIn: "10m" }
+  );
 
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: ["https://www.googleapis.com/auth/drive.file"],
+    state, // 🔥 send user safely
   });
 
   res.json({ url });
@@ -39,23 +32,19 @@ export const connectDrive = (req, res) => {
 // 🔁 CALLBACK
 export const driveCallback = async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, state } = req.query;
+
+    // 🔥 decode user safely
+    const decoded = jwt.verify(state, process.env.JWT_SECRET);
 
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-
-    const user = req.app.locals.oauthUser;
-
-    if (!user) {
-      return res.status(401).send("User lost during OAuth");
-    }
 
     const drive = google.drive({
       version: "v3",
       auth: oauth2Client,
     });
 
-    // 🔥 Create folder
     const folder = await drive.files.create({
       requestBody: {
         name: "Questly Vault",
@@ -64,19 +53,20 @@ export const driveCallback = async (req, res) => {
     });
 
     await GoogleDrive.create({
-      user_id: user.id,
+      user_id: decoded.id,
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expiry_date: tokens.expiry_date,
       folder_id: folder.data.id,
     });
 
-    res.redirect(process.env.CLIENT_URLS); // back to frontend
+    res.redirect(process.env.CLIENT_URLS);
   } catch (err) {
     console.error(err);
     res.status(500).send("Drive connection failed");
   }
 };
+
 
 // 📤 UPLOAD FILE (WITH SUBJECT FOLDER)
 export const uploadFile = async (req, res) => {

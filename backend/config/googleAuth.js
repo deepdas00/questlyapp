@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+console.log("////");
 
 console.log("🔥 Redirect URI:", redirectUri); // DEBUG
 
