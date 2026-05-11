@@ -32,37 +32,29 @@ export const connectDrive = (req, res) => {
 // 🔁 CALLBACK
 export const driveCallback = async (req, res) => {
   try {
-    const { code, state } = req.query;
+    console.log("QUERY:", req.query);
 
-    // 🔥 decode user safely
-    const decoded = jwt.verify(state, process.env.JWT_SECRET);
+    const { code } = req.query;
+
+    if (!code) {
+      return res.status(400).send("No code received");
+    }
 
     const { tokens } = await oauth2Client.getToken(code);
+    console.log("TOKENS:", tokens);
+
     oauth2Client.setCredentials(tokens);
 
-    const drive = google.drive({
-      version: "v3",
-      auth: oauth2Client,
-    });
+    const user = req.app.locals.oauthUser;
+    console.log("USER:", user);
 
-    const folder = await drive.files.create({
-      requestBody: {
-        name: "Questly Vault",
-        mimeType: "application/vnd.google-apps.folder",
-      },
-    });
+    if (!user) {
+      return res.status(401).send("User lost during OAuth");
+    }
 
-    await GoogleDrive.create({
-      user_id: decoded.id,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      expiry_date: tokens.expiry_date,
-      folder_id: folder.data.id,
-    });
-
-    res.redirect(process.env.CLIENT_URLS);
+    res.send("SUCCESS"); // temporary
   } catch (err) {
-    console.error(err);
+    console.error("FULL ERROR:", err);
     res.status(500).send("Drive connection failed");
   }
 };
