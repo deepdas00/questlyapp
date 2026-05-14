@@ -17,6 +17,7 @@ import projectTaskRoutes from "./routes/projectTask.routes.js";
 import projectInviteRoutes from "./routes/projectInvite.routes.js";
 import pushRoutes from "./routes/push.routes.js";
 import driveRoutes from "./routes/driveRoutes.js";
+import eventRoutes from "./routes/event.routes.js";
 import "./utils/cron.js";
 
 dotenv.config();
@@ -66,6 +67,8 @@ app.use("/api/project-tasks", projectTaskRoutes);
 app.use("/api/project-invite", projectInviteRoutes);
 app.use("/api/push", pushRoutes);
 app.use("/api/drive", driveRoutes);
+app.use("/api/event", eventRoutes);
+
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

@@ -15,6 +15,10 @@ export const AppProvider = ({ children }) => {
   //Dashboard page/home page
   const [dashboardData, setDashboardData] = useState(null);
 
+  //event calendar
+  const [events, setEvents] = useState([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
+
   return (
     <AppContext.Provider
       value={{
@@ -29,10 +33,14 @@ export const AppProvider = ({ children }) => {
 
         tasks,
         setTasks,
-        
 
         dashboardData,
         setDashboardData,
+
+        events,
+        setEvents,
+        eventsLoaded,
+        setEventsLoaded,
       }}
     >
       {children}

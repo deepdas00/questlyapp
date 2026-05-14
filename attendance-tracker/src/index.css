@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+
+
+.react-calendar {
+  border: none;
+  width: 100%;
+  font-family: inherit;
+}
+
+.react-calendar__tile--active {
+  background: #2563eb !important;
+  color: white !important;
+  border-radius: 10px;
+}
+
+.react-calendar__tile {
+  border-radius: 10px;
+}
